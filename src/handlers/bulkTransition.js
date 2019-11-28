@@ -35,6 +35,10 @@ export const handler = async (AWS, { throttleLmts, safeThrottleLimit, reserveCap
     const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap, `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`);
     console.log(`bulkTransition: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
 
+    if (messagesToProcess.length < 1) {
+      return 'bulkTransition: INFO: Processing complete';
+    }
+
     // Increment the 'calls made count' in the database to the number of messages that will be 
     // processed this iteration
     await incCallCount(AWS, service, messagesToProcess.length);
