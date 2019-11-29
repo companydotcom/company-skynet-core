@@ -11,7 +11,11 @@ import { isArray } from 'util';
 
 /**
  * This function processes the message that is sent to it by invoking the message handler function that is passed to it as a param
- * @param {Object} param0 is the message object containing properties msgBody (Body of the SNS message), msgAttribs (Message attributes of the SNS message) and rcptHandle (Message receipt handle for the message from SQS)
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} region is the region of AWS that this service is running in
+ * @param {string} service is the name of the service
+ * @param { string } account is AWS the account number
+ * @param { msgBody: object, msgAttribs: object, rcptHandle: string } is the message object containing properties msgBody (Body of the SNS message), msgAttribs (Message attributes of the SNS message) and rcptHandle (Message receipt handle for the message from SQS)
  * @param {Function} msgHandler is the handler function that will proess the message
  * @returns {Boolean}
  * @throws {Error}

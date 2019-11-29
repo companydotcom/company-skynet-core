@@ -73,7 +73,18 @@ const parseAttributes = attributes => Object.keys(attributes)
     };
   }, {});
 
+/**
+ * * Determine if the given value is a string
+ * @param {*} type 
+ * @returns {boolean}
+ */
 const isSnsString = type => type === 'String';
+
+/**
+ * Parses object if it is not a string
+ * @param {*} type 
+ * @returns {boolean}
+ */
 const parseSnsType = (val, type) => (isSnsString(type)
   ? val
   : JSON.parse(val));
@@ -81,6 +92,7 @@ const parseSnsType = (val, type) => (isSnsString(type)
 export default {
   /**
    * @description Publish message to SNS event stream.
+   * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
    * @param {string} topicArn
    * @param {{ [key: string]: any }} message
    * @param {CompanyEventAttributes} attributes
@@ -104,6 +116,7 @@ export default {
       return err;
     }
   },
+
   /**
    * @description Parses a CompanyEvent, returning an object that retains only the original event's "Message" and "MessageAttributes" values.
    * @template M

@@ -50,6 +50,8 @@ export const parseMsg = message => {
 
 /**
  * Send the given message to the given SQS queue
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} region is the region of AWS that this service is running in
  * @param {String} qUrl is the url of the queue to send the message to
  * @param {String} msg is the message that needs to be sent
  * @returns {*}
@@ -64,6 +66,8 @@ export const sendMsg = async (AWS, region, qUrl, msg) => {
 
 /**
  * Gets messages from the given queue
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} region is the region of AWS that this service is running in
  * @param {Number} msgCountToFetch is the quantity of messages to fetch from the queue. Returned message quantity can be less than this if the messages in the queue are exhausted
  * @param {String} QueueUrl is the url of the queue from which to fetch the messages
  * @returns {[SQSMessage]}
@@ -94,6 +98,8 @@ export const getMsgsFromQueue = async (AWS, region, msgCountToFetch, QueueUrl) =
 
 /**
  * Delete message from the given queue url using the given receipt handle
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} region is the region of AWS that this service is running in
  * @param {String} QueueUrl is the url of the queue from which to delete the message
  * @param {String} ReceiptHandle is the receipt handle of the message to be deleted
  * @returns {*}

@@ -9,7 +9,15 @@ import { getAvaiableCallsThisSec as getAvailableCapacity, incrementUsedCount as 
 /**
  * This is the handler that is invoked by a cloud watch trigger to process
  * messages that are waiting in the bulk transition queue
- * @param {*} event that invokes the serverless function. In this case, it is a cloud watch trigger
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {object} { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity } are the throttle limits from env
+ * @param {string} region is the region of AWS that this service is running in
+ * @param {string} service is the name of the service
+ * @param {string} account is AWS the account number
+ * @param {object} event that invokes the serverless function. In this case, it is a cloud watch trigger
+ * @param {function} mHndlr is the handler/ worker that works on the message applying business logic
+ * @returns {string}
+ * @throws {Error}
  */
 export const handler = async (AWS, { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity }, region, service, account, event, mHndlr) => {
   try {

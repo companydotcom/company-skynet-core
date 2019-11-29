@@ -11,6 +11,7 @@ const dynamoDbQuerySafeBatchLimit = 1000;
    * If there is no limit set on the number of records, it uses the built-in safety limit.
    * All records returned are simple Javascript Objects with Key-Value pairs (doing away with
    * DynamoDb style of defining values for properties along with data type - unmarshalling)
+   * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
    * @param {Object} queryObject
    * @returns {[{String: *}]}
    */
@@ -45,7 +46,8 @@ export const fetchRecordsByQuery = async (AWS, queryObject,
 };
 
 /**
- * 
+ * Increment the value in the given column by the given value
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {String} tName is the table name
  * @param {Object} srchParams are the search params for the record
  * @param {String} colName column name to increment
@@ -69,6 +71,7 @@ export const incrementColumn = async (AWS, tName, srchParams,
 
 /**
    * Inserts/ Upserts data into DynamoDb with given records to the given table
+   * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
    * @param {Array} records
    * @param {String} tName
    * @returns {Boolean}

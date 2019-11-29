@@ -4,6 +4,7 @@ import { sleep } from './util';
 /**
  * Fetches and returns the number of calls made to the service for the given
  * day, hour, minute and second
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {String} serviceName is the service for which the metrics are to be fetched
  * @returns {{ second: Number, minute: Number, hour: Number, day: Number }}
  */
@@ -82,6 +83,7 @@ export const getCallsMade = async (AWS, serviceName) => {
 /**
  * Gets the count of calls that can be made this second without hitting the
  * throttle limit
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {String} serviceName is the name of the service for which the count is required
  * @param {Boolean} bulk tells whether the call is going to be bulk or direct
  * @returns {Number}
@@ -143,6 +145,7 @@ export const getAvaiableCallsThisSec = async (
 /**
  * Increments the per second, minute, hour and day calls made count to the
  * given increment count which is 1 by default
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {String} serviceName 
  * @param {Number} incVal 
  * @returns {Boolean}
