@@ -37,8 +37,8 @@ export const processMessage = async (AWS, region, service, account,
     message: msgBody,
     serviceConfigData: typeof dbConfig !== 'undefined'
       && isArray(dbConfig) && dbConfig.length > 0
-      && typeof dbConfig[0].data !== 'undefined'
-      ? dbConfig[0].data : [],
+      && typeof dbConfig[0].configdata !== 'undefined'
+      ? dbConfig[0].configdata : [],
     attributes: msgAttribs,
   }, msgHandler);
   console.log(`bulkTransition: processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);

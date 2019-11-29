@@ -5,7 +5,7 @@ export const handler = async (AWS, data, service) => {
   try {
     const record = {
       service,
-      data
+      configdata: data
     };
     const res = await batchPutIntoDynamoDb(AWS, [record], 'vendorConfig');
     console.log('Database has been setup successfully');
