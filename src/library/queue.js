@@ -3,7 +3,7 @@ const { deepParseJson } = require('deep-parse-json');
 /**
  * Convert the given SNS type attributes to simple JSON key-value pair of
  * attributes
- * @param {Object} attribs 
+ * @param {Object} attribs are the message attributes
  * @returns {[{String: *}]}
  */
 // eslint-disable-next-line arrow-body-style
@@ -72,7 +72,8 @@ export const sendMsg = async (AWS, region, qUrl, msg) => {
  * @param {String} QueueUrl is the url of the queue from which to fetch the messages
  * @returns {[SQSMessage]}
  */
-export const getMsgsFromQueue = async (AWS, region, msgCountToFetch, QueueUrl) => {
+export const getMsgsFromQueue = async (AWS, region, msgCountToFetch,
+  QueueUrl) => {
   const sqs = new AWS.SQS({ region });
   let messages = [];
   const proms = [];
@@ -109,5 +110,5 @@ export const deleteMsg = async (AWS, region, QueueUrl, ReceiptHandle) => {
   sqs.deleteMessage({
     QueueUrl,
     ReceiptHandle,
-  }).promise()
+  }).promise();
 };

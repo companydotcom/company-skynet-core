@@ -1,4 +1,3 @@
-import { SNS } from 'aws-sdk';
 import { parseJson } from './util';
 
 /**
@@ -68,22 +67,23 @@ const parseAttributes = attributes => Object.keys(attributes)
       ...res,
       [key]: {
         DataType: type,
-        StringValue: type === 'String.Array' ? JSON.stringify(val) : val.toString(),
+        StringValue: type === 'String.Array'
+          ? JSON.stringify(val) : val.toString(),
       },
     };
   }, {});
 
 /**
- * * Determine if the given value is a string
- * @param {*} type 
+ * * Determine if the given value (type) is a string
+ * @param {any} type
  * @returns {boolean}
  */
 const isSnsString = type => type === 'String';
 
 /**
  * Parses object if it is not a string
- * @param {*} type 
- * @returns {boolean}
+ * @param {any} val
+ * @param {any} type
  */
 const parseSnsType = (val, type) => (isSnsString(type)
   ? val

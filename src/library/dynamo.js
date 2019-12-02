@@ -76,9 +76,11 @@ export const incrementColumn = async (AWS, tName, srchParams,
    * @param {String} tName
    * @returns {Boolean}
    */
-export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => {
+export const batchPutIntoDynamoDb = async (AWS, recs, tName,
+  backoff = 1000) => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
-  // Convert all records to DynamoDb object structure and append the top level object structure for each record insertion
+  // Convert all records to DynamoDb object structure and append the top level
+  // object structure for each record insertion
   const preparedRecords = recs.map(record => ({
     PutRequest:
       { Item: AWS.DynamoDB.Converter.marshall(record) },
@@ -86,8 +88,9 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => 
 
   const bulkRequests = [];
 
-  // Split the records into batches of the safe batch request length, insert the top level object for insertion
-  // and send the split batches for batch write into database all at the same time using Promise.all
+  // Split the records into batches of the safe batch request length, insert
+  // the top level object for insertion and send the split batches for batch
+  // write into database all at the same time using Promise.all
   while (preparedRecords.length > 0) {
     bulkRequests.push(dynamodb.batchWriteItem(
       {
@@ -107,13 +110,18 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => 
         && itemExists(resultDatum.UnprocessedItems, tName)
         && resultDatum.UnprocessedItems[tName].length > 0) {
         // eslint-disable-next-line max-len
-        return resultDatum.UnprocessedItems[tName].map(unprocessedRec => AWS.DynamoDB.Converter.unmarshall(unprocessedRec.PutRequest.Item));
+        return resultDatum.UnprocessedItems[tName].map(
+          unprocessedRec => AWS.DynamoDB.Converter.unmarshall(
+            unprocessedRec.PutRequest.Item,
+          ),
+        );
       }
       return [];
     })).reduce((output, currentArray) => output.concat(currentArray));
     if (unprocessedRecords.length > 0) {
       await sleep(backoff);
-      return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName, backoff + 1000);
+      return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName,
+        backoff + 1000);
     }
     return true;
   } catch (err) {

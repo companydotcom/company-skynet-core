@@ -16,7 +16,11 @@ import { getAvaiableCallsThisSec as getAvailableCapacity, incrementUsedCount as 
  * @returns {string}
  * @throws {Error}
  */
-export const handler = async (AWS, { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity }, region, service, account, event, mHndlr) => {
+export const handler = async (
+  AWS,
+  {
+    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+  }, region, service, account, event, mHndlr) => {
   try {
     console.log(`directTransition: INFO: Input is: ${JSON.stringify(event, null, 4)}`);
 
@@ -33,8 +37,9 @@ export const handler = async (AWS, { throttleLmts, safeThrottleLimit, reserveCap
         throttleLmts,
         safeThrottleLimit,
         reserveCapForDirect,
-        retryCntForCapacity
-      }, service, false);
+        retryCntForCapacity,
+      }, service, false,
+    );
     console.log(`directTransition: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
 
     // If there is no available capacity to make calls, throw an error which
@@ -52,8 +57,9 @@ export const handler = async (AWS, { throttleLmts, safeThrottleLimit, reserveCap
 
     // Call the message processer to process the message which includes error
     // handling and publishing response to SNS
-    await processMessage(AWS, region, service, account, { msgBody, msgAttribs }, mHndlr);
-    
+    await processMessage(AWS, region, service, account, { msgBody, msgAttribs },
+      mHndlr);
+
     return 'directTransition: INFO: Processing complete';
   } catch (e) {
     console.log(`directTransition: ERROR: ${getErrorString(e)}`);

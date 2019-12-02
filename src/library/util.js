@@ -12,29 +12,8 @@ export const parseJson = v => {
 };
 
 /**
- * This is a higher order function to execute the given messageHandler, catch
- * errors and return a proper response
- * @param {any} params 
- * @param {Function} messageHandler 
- * @returns {Object}
- */
-export const neverThrowError = async (params, messageHandler) => {
-  const result = {
-    status: 'pass',
-    params,
-  };
-  try {
-    result.processResp = await messageHandler(params);
-  } catch (e) {
-    result.status = 'fail';
-    result.error = getErrorString(e);
-  }
-  return result;
-};
-
-/**
  * Returns the string equivalent meaning for given HTTP status code
- * @param {Number} code 
+ * @param {Number} code
  */
 const getCodeStatus = code => {
   switch (code) {
@@ -86,7 +65,7 @@ export const formatHttpResponse = (code, input, result) => {
 
 /**
  * Returns the string representation of a given object, error or string
- * @param {Object/ String/ Error} e 
+ * @param {Object/ String/ Error} e
  * @returns {String}
  */
 export const getErrorString = e => {
@@ -100,6 +79,27 @@ export const getErrorString = e => {
 };
 
 /**
+ * This is a higher order function to execute the given messageHandler, catch
+ * errors and return a proper response
+ * @param {any} params
+ * @param {Function} messageHandler
+ * @returns {Object}
+ */
+export const neverThrowError = async (params, messageHandler) => {
+  const result = {
+    status: 'pass',
+    params,
+  };
+  try {
+    result.processResp = await messageHandler(params);
+  } catch (e) {
+    result.status = 'fail';
+    result.error = getErrorString(e);
+  }
+  return result;
+};
+
+/**
  * Classis sleep function using async-await
  * @param {Number} s is the number of milliseconds to sleep
  */
@@ -107,9 +107,11 @@ export const sleep = async s => new Promise(r => setTimeout(() => { r(); }, s));
 
 /**
  * Checks if the given param exists in the given object
- * @param {*} obj is the object to check if the given param exists in
- * @param {*} param is the param to check if it exists in the given obj
+ * @param {object} obj is the object to check if the given param exists in
+ * @param {string} param is the param to check if it exists in the given obj
  * @returns {Boolean}
  */
 // eslint-disable-next-line max-len
-export const itemExists = (obj, param) => Object.prototype.hasOwnProperty.call(obj, param);
+export const itemExists = (obj, param) => Object.prototype.hasOwnProperty.call(
+  obj, param,
+);

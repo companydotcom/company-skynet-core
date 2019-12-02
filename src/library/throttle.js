@@ -32,39 +32,43 @@ export const getCallsMade = async (AWS, serviceName) => {
     fetchRecordsByQuery(
       AWS,
       {
-      ...queryObj,
-      ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-second` },
-        ':et': { N: currSec.toString() },
+        ...queryObj,
+        ExpressionAttributeValues: {
+          ':sd': { S: `${serviceName}-second` },
+          ':et': { N: currSec.toString() },
+        },
       },
-    }),
+    ),
     fetchRecordsByQuery(
       AWS,
       {
-      ...queryObj,
-      ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-minute` },
-        ':et': { N: currMin.toString() },
+        ...queryObj,
+        ExpressionAttributeValues: {
+          ':sd': { S: `${serviceName}-minute` },
+          ':et': { N: currMin.toString() },
+        },
       },
-    }),
+    ),
     fetchRecordsByQuery(
       AWS,
       {
-      ...queryObj,
-      ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-hour` },
-        ':et': { N: currHr.toString() },
+        ...queryObj,
+        ExpressionAttributeValues: {
+          ':sd': { S: `${serviceName}-hour` },
+          ':et': { N: currHr.toString() },
+        },
       },
-    }),
+    ),
     fetchRecordsByQuery(
       AWS,
       {
-      ...queryObj,
-      ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-day` },
-        ':et': { N: currDay.toString() },
+        ...queryObj,
+        ExpressionAttributeValues: {
+          ':sd': { S: `${serviceName}-day` },
+          ':et': { N: currDay.toString() },
+        },
       },
-    }),
+    ),
   ];
 
   // Wait for the promises to complete
@@ -90,7 +94,9 @@ export const getCallsMade = async (AWS, serviceName) => {
  */
 export const getAvaiableCallsThisSec = async (
   AWS,
-  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
+  {
+    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+  },
   serviceName, bulk = true, iter = 0) => {
   if (iter > retryCntForCapacity) {
     return 0;
@@ -113,22 +119,26 @@ export const getAvaiableCallsThisSec = async (
   const callsMade = await getCallsMade(AWS, serviceName);
   let availLmt = 'x';
   if (typeof throtLmts.day !== 'undefined'
-    && (Math.floor((throtLmts.day * resFact) - callsMade.day) < availLmt || availLmt === 'x')) {
+    && (Math.floor((throtLmts.day * resFact) - callsMade.day) < availLmt
+      || availLmt === 'x')) {
     availLmt = Math.floor((throtLmts.day - callsMade.day) * resFact);
   }
 
   if (typeof throtLmts.hour !== 'undefined'
-    && (Math.floor((throtLmts.hour * resFact) - callsMade.hour) < availLmt || availLmt === 'x')) {
+    && (Math.floor((throtLmts.hour * resFact) - callsMade.hour) < availLmt
+      || availLmt === 'x')) {
     availLmt = Math.floor((throtLmts.hour - callsMade.hour) * resFact);
   }
 
   if (typeof throtLmts.minute !== 'undefined'
-    && (Math.floor((throtLmts.minute * resFact) - callsMade.minute) < availLmt || availLmt === 'x')) {
+    && (Math.floor((throtLmts.minute * resFact) - callsMade.minute) < availLmt
+      || availLmt === 'x')) {
     availLmt = Math.floor((throtLmts.minute - callsMade.minute) * resFact);
   }
 
   if (typeof throtLmts.second !== 'undefined'
-    && (Math.floor((throtLmts.second * resFact) - callsMade.second) < availLmt || availLmt === 'x')) {
+    && (Math.floor((throtLmts.second * resFact) - callsMade.second) < availLmt
+      || availLmt === 'x')) {
     availLmt = Math.floor((throtLmts.second - callsMade.second) * resFact);
   }
 
@@ -136,9 +146,12 @@ export const getAvaiableCallsThisSec = async (
     ? availLmt : getAvaiableCallsThisSec(
       AWS,
       {
-        throttleLmts, safeThrottleLimit,
-        reserveCapForDirect, retryCntForCapacity
-      }, serviceName, bulk, iter + 1);
+        throttleLmts,
+        safeThrottleLimit,
+        reserveCapForDirect,
+        retryCntForCapacity,
+      }, serviceName, bulk, iter + 1,
+    );
 };
 
 
@@ -146,8 +159,8 @@ export const getAvaiableCallsThisSec = async (
  * Increments the per second, minute, hour and day calls made count to the
  * given increment count which is 1 by default
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {String} serviceName 
- * @param {Number} incVal 
+ * @param {String} serviceName is the name of the service
+ * @param {Number} incVal is the increment value. Defaults to 1
  * @returns {Boolean}
  */
 export const incrementUsedCount = async (AWS, serviceName, incVal = 1) => {
