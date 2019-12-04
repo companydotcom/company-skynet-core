@@ -28,7 +28,7 @@ export const handler = async (
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
   }, region, service, account, event, mHndlr) => {
   try {
-    console.log(`bulkTransition: INFO: Scheduled call started. Event is ${event}`);
+    console.log(`bulkTransition: INFO: Scheduled call started. Event is ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // Get the available capacity for making calls before going any further
     const availCap = await getAvailableCapacity(

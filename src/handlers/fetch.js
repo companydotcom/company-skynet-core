@@ -26,7 +26,7 @@ export const handler = async (
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
   }, region, service, account, event, mHndlr) => {
   try {
-    console.log(`directFetch: INFO: Input is: ${JSON.stringify(event, null, 4)}`);
+    console.log(`directFetch: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // If there are no records to process or more than one record to process,
     // throw an error as it is an invalid event

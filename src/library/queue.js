@@ -1,5 +1,6 @@
 const { deepParseJson } = require('deep-parse-json');
 
+const safeMsgFetchLimitPerInstance = 500;
 /**
  * Convert the given SNS type attributes to simple JSON key-value pair of
  * attributes
@@ -77,7 +78,8 @@ export const getMsgsFromQueue = async (AWS, region, msgCountToFetch,
   const sqs = new AWS.SQS({ region });
   let messages = [];
   const proms = [];
-  let msgsToFetch = msgCountToFetch;
+  let msgsToFetch = msgCountToFetch < safeMsgFetchLimitPerInstance
+    ? msgCountToFetch : safeMsgFetchLimitPerInstance;
   while (msgsToFetch > 0) {
     const msgsToFetchThisIter = msgsToFetch < 10 ? msgsToFetch : 10;
     msgsToFetch -= msgsToFetchThisIter;
