@@ -68,7 +68,7 @@ export const processMessage = async (AWS, region, service, account,
     serviceUserData,
     attributes: msgAttribs,
   }, msgHandler);
-  console.log(`bulkTransition: processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
+  console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
 
   if (itemExists(procRes, 'serviceUserData')) {
     if (typeof procRes.serviceUserData !== 'object') {
