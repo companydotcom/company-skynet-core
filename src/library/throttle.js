@@ -113,6 +113,10 @@ export const getAvaiableCallsThisSec = async (
     return 1000000;
   }
 
+  // CR: Mickey: looking at the below makes my head hurt, but I trust you on it and
+  //    I can't think of a way that would make it look better
+
+  // CR: Mickey: what is resFact short for? reservedFactor?
   const resFact = bulk === true
     ? (1 - reserveCapForDirect) * safeThrottleLimit
     : 1 * safeThrottleLimit;
@@ -154,6 +158,11 @@ export const getAvaiableCallsThisSec = async (
     );
 };
 
+// CR: Mickey: the incVal seems to generally be passed as the number of messages handled
+//    have we considered handlers that contact the vendor api multiple times?  Or
+//    cases of vendors with multiple apis with separate throttle limts?
+//    e.g. Yext - scan API with very low limit; knowledge graph API with reasonable limit but some fetch calls consuming 4 or 5 endpoints
+//    a Yext activation takes I think 3 calls to create the multiple entities that are needed
 
 /**
  * Increments the per second, minute, hour and day calls made count to the

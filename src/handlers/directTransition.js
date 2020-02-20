@@ -48,6 +48,9 @@ export const handler = async (
       throw new Error('directTransition: ERROR: No capacity to make a call');
     }
 
+    // CR: Mickey: made a note on `incrementUsedCount`, but do we have to consider if
+    //    handler makes multiple calls to the vendor api for a single message
+
     // Increment the 'calls made count' in the database. Default increment is 1
     // Therefore, no need to send the increment parameter
     await incCallCount(AWS, service);

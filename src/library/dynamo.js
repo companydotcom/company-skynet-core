@@ -83,7 +83,7 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName,
   // object structure for each record insertion
   const preparedRecords = recs.map(record => ({
     PutRequest:
-      { Item: AWS.DynamoDB.Converter.marshall(record) },
+      { Item: AWS.DynamoDB.Converter.marshall(record) }, // CR: Mickey: should we include { converEmptyValues: true } options here for empty string protection?
   }));
 
   const bulkRequests = [];
@@ -128,3 +128,5 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName,
     throw err;
   }
 };
+
+// CR: Mickey: add singlePutIntoDynamoDb method?

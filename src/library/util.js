@@ -91,6 +91,10 @@ export const neverThrowError = async (params, messageHandler) => {
     params,
   };
   try {
+    // CR: Mickey: I see here that procRes.status will always exist and is not set by the handler
+    //    can we come up with a better name for the property assigned on the next line so that
+    //    in process.js this is not named basically processResponse.processResponse with different
+    //    abbreviations?  Maybe result.handlerResponse?
     result.processResp = await messageHandler(params);
   } catch (e) {
     result.status = 'fail';

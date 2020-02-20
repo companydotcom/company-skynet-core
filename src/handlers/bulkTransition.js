@@ -70,6 +70,7 @@ export const handler = async (
     });
 
     // Await completion of all promises
+    // CR: Mickey: Promise.all fails if any of its child promises fail.  Is that expected behavior?
     await Promise.all(proms);
 
     return 'bulkTransition: INFO: Processing complete';
