@@ -16,7 +16,7 @@ import {
  * @param {string} service is the name of the service
  * @param { string } account is AWS the account number
  * @param { msgBody: object, msgAttribs: object, rcptHandle: string } is the message object containing properties msgBody (Body of the SNS message), msgAttribs (Message attributes of the SNS message) and rcptHandle (Message receipt handle for the message from SQS)
- * @param {Function} msgHandler is the handler function that will proess the message
+ * @param {Function} msgHandler is the handler function that will process the message
  * @returns {Boolean}
  * @throws {Error}
  */
@@ -82,6 +82,8 @@ export const processMessage = async (AWS, region, service, account,
       && isArray(dbConfig) && dbConfig.length > 0
       && typeof dbConfig[0].configdata !== 'undefined'
       ? dbConfig[0].configdata : [],
+      // CR: Mickey Simpler way to do this access + default: _get(dbConfig, [0, 'configData], [])
+      //     Why does this default to [] and not {}.  from current vendorConfig table looks like this is generally Obj
     serviceUserData,
     attributes: msgAttribs,
   }, msgHandler);
@@ -91,6 +93,8 @@ export const processMessage = async (AWS, region, service, account,
   //    block (ln43-62) may now be out of date?  
   //    I would also lean towards making this a named helper function to make it more
   //    clear what its purpose is like "saveServiceDataToAccount"
+  // CR: Mickey: noticed when looking at skynet-generator that this access isn't right
+  //     should be: procRes.processResp.serviceUserData to access serviceUserData key returned from handler
   if (itemExists(procRes, 'serviceUserData')) {
     if (typeof procRes.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
@@ -141,6 +145,7 @@ export const processMessage = async (AWS, region, service, account,
       payload: {
         ...msgBody.payload,
         ...procRes.processResp, // CR: Mickey: as noted else where, would love for this to be processResult.handlerResponse
+        // CR: Mickey: Looking at skynet-generator I think this should be `...procRes.processResp.res`
       },
     },
     {

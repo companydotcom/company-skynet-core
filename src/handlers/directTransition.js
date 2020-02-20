@@ -1,7 +1,7 @@
 import { processMessage } from '../library/process';
 import { getErrorString } from '../library/util';
 import { parseMsg as sqsParser } from '../library/queue';
-import { getAvaiableCallsThisSec as getAvailableCapacity, incrementUsedCount as incCallCount } from '../library/throttle';
+import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount as incCallCount } from '../library/throttle';
 
 /**
  * This is the handler that is invoked by a SQS trigger to process
@@ -58,7 +58,7 @@ export const handler = async (
     // Parse the message using the sqsParser function from queue library
     const { msgBody, msgAttribs } = sqsParser(event.Records[0]);
 
-    // Call the message processer to process the message which includes error
+    // Call the message processor to process the message which includes error
     // handling and publishing response to SNS
     await processMessage(AWS, region, service, account, { msgBody, msgAttribs },
       mHndlr);

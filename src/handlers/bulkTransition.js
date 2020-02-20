@@ -5,7 +5,7 @@ import {
   parseMsg as sqsParser,
 } from '../library/queue';
 import {
-  getAvaiableCallsThisSec as getAvailableCapacity,
+  getAvailableCallsThisSec as getAvailableCapacity,
   incrementUsedCount as incCallCount,
 } from '../library/throttle';
 

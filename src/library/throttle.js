@@ -92,7 +92,11 @@ export const getCallsMade = async (AWS, serviceName) => {
  * @param {Boolean} bulk tells whether the call is going to be bulk or direct
  * @returns {Number}
  */
-export const getAvaiableCallsThisSec = async (
+// CR: Mickey: I recommend everyone installing a spellchecker in your editor to avoid
+//    accidentally misnaming variables during declaration and then perpetuating
+//    the misspelling throughout the codebase via the autocomplete.
+//    I use "Code Spell Checker" by StreetSide Software on vsCode
+export const getAvailableCallsThisSec = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
@@ -147,7 +151,7 @@ export const getAvaiableCallsThisSec = async (
   }
 
   return availLmt > 0
-    ? availLmt : getAvaiableCallsThisSec(
+    ? availLmt : getAvailableCallsThisSec(
       AWS,
       {
         throttleLmts,
@@ -160,7 +164,7 @@ export const getAvaiableCallsThisSec = async (
 
 // CR: Mickey: the incVal seems to generally be passed as the number of messages handled
 //    have we considered handlers that contact the vendor api multiple times?  Or
-//    cases of vendors with multiple apis with separate throttle limts?
+//    cases of vendors with multiple apis with separate throttle limits?
 //    e.g. Yext - scan API with very low limit; knowledge graph API with reasonable limit but some fetch calls consuming 4 or 5 endpoints
 //    a Yext activation takes I think 3 calls to create the multiple entities that are needed
 

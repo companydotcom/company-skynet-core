@@ -38,7 +38,7 @@ export const fetchRecordsByQuery = async (AWS, queryObject,
     if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
       return [];
     }
-    // Convert DynamoDb stlye objects to simple Javascript objects
+    // Convert DynamoDb style objects to simple Javascript objects
     return qResult.Items.map(item => AWS.DynamoDB.Converter.unmarshall(item));
   } catch (err) {
     throw err;
@@ -121,7 +121,7 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName,
     if (unprocessedRecords.length > 0) {
       await sleep(backoff);
       return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName,
-        backoff + 1000);
+        backoff + 1000); // CR: Mickey: Why are we increasing the sleep time on each iteration?
     }
     return true;
   } catch (err) {
