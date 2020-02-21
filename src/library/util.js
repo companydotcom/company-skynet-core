@@ -91,7 +91,7 @@ export const neverThrowError = async (params, messageHandler) => {
     params,
   };
   try {
-    result.processResp = await messageHandler(params);
+    result.workerResp = await messageHandler(params);
   } catch (e) {
     result.status = 'fail';
     result.error = getErrorString(e);

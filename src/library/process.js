@@ -40,8 +40,8 @@ export const processMessage = async (AWS, region, service, account,
   // eslint-disable-next-line no-undef-init
   let serviceUserData = undefined;
   if (itemExists(msgBody, 'context')
-      && itemExists(msgBody.context, 'user')
-      && itemExists(msgBody.context.user, 'accountId')) {
+    && itemExists(msgBody.context, 'user')
+    && itemExists(msgBody.context.user, 'accountId')) {
     const accData = await fetchRecordsByQuery(
       AWS,
       {
@@ -70,8 +70,8 @@ export const processMessage = async (AWS, region, service, account,
   }, msgHandler);
   console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
 
-  if (itemExists(procRes, 'serviceUserData')) {
-    if (typeof procRes.serviceUserData !== 'object') {
+  if (itemExists(procRes.workerResp, 'serviceUserData')) {
+    if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
     }
     if (itemExists(msgBody, 'context')
@@ -96,7 +96,7 @@ export const processMessage = async (AWS, region, service, account,
       }
       currAccData.vendorData[`${service}`] = {
         ...currAccData.vendorData[`${service}`],
-        ...procRes.serviceUserData,
+        ...procRes.workerResp.serviceUserData,
       };
       await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
     }
@@ -110,7 +110,7 @@ export const processMessage = async (AWS, region, service, account,
       ...msgBody,
       payload: {
         ...msgBody.payload,
-        ...procRes.processResp,
+        ...procRes.workerResp,
       },
     },
     {
