@@ -78,7 +78,7 @@ export const processMessage = async (AWS, region, service, account,
   );
 
   // eslint-disable-next-line no-undef-init
-  let serviceAccountData = undefined;
+  let serviceAccountData = {};
   if (itemExists(msgBody, 'context')
     && itemExists(msgBody.context, 'user')
     && itemExists(msgBody.context.user, 'accountId')) {
@@ -92,7 +92,7 @@ export const processMessage = async (AWS, region, service, account,
   }
 
   // eslint-disable-next-line no-undef-init
-  let serviceUserData = undefined;
+  let serviceUserData = {};
   if (itemExists(msgBody, 'context')
     && itemExists(msgBody.context, 'user')
     && itemExists(msgBody.context.user, 'userId')) {
