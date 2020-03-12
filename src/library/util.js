@@ -112,6 +112,6 @@ export const sleep = async s => new Promise(r => setTimeout(() => { r(); }, s));
  * @returns {Boolean}
  */
 // eslint-disable-next-line max-len
-export const itemExists = (obj, param) => Object.prototype.hasOwnProperty.call(
+export const itemExists = (obj, param) => typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(
   obj, param,
-);
+) : false;
