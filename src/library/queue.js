@@ -75,6 +75,7 @@ export const sendMsg = async (AWS, region, qUrl, msg) => {
  */
 export const getMsgsFromQueue = async (AWS, region, msgCountToFetch,
   QueueUrl) => {
+  console.log(`Fetching messages from SQS URL: ${QueueUrl}`);
   const sqs = new AWS.SQS({ region });
   let messages = [];
   const proms = [];

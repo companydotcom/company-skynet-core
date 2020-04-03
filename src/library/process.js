@@ -141,7 +141,6 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
-
   if (itemExists(procRes.workerResp, 'serviceUserData')) {
     if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');

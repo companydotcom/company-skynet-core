@@ -15,6 +15,7 @@ export const handler = async (AWS, data, service) => {
       service,
       configdata: data,
     };
+    console.log(`Data being sent ${JSON.stringify([record], null, 4)}`);
     await batchPutIntoDynamoDb(AWS, [record], 'vendorConfig');
     console.log('Database has been setup successfully');
     return 'Database has been setup successfully';
