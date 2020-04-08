@@ -88,7 +88,6 @@ export const getMsgsFromQueue = async (AWS, region, msgCountToFetch,
       QueueUrl,
       MaxNumberOfMessages: msgsToFetchThisIter,
       VisibilityTimeout: 900,
-      WaitTimeSeconds: 10,
     }).promise());
   }
   const resps = await Promise.all(proms);
