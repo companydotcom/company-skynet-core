@@ -1,4 +1,4 @@
-const { deepParseJson } = require('deep-parse-json');
+const { deepParseJson } = require('./utils');
 
 const safeMsgFetchLimitPerInstance = 500;
 /**
