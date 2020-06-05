@@ -171,10 +171,8 @@ export const processMessage = async (AWS, region, service, account,
     `arn:aws:sns:${region}:${account}:event-bus`,
     {
       ...msgBody,
-      payload: {
-        ...msgBody.payload,
-        ...(procRes.workerResp.res ? procRes.workerResp.res : procRes.workerResp),
-      },
+      inputPayload: msgBody.payload,
+      payload: procRes.workerResp.res ? procRes.workerResp.res : procRes.workerResp,
     },
     {
       ...msgAttribs,
