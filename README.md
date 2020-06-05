@@ -8,6 +8,7 @@ Do 'npm install' and then 'npm run build' to create the distribution file
 index.js under dist folder.
 To publish:
 1. increment the version in package.json,
-2. do 'npm login',
-3. do 'npm config set scope companydotcom',
-4. do 'npm publish --access public'
+2. Build the package using 'npm run build',
+3. do 'npm login',
+4. do 'npm config set scope companydotcom',
+5. do 'npm publish --access public'
