@@ -173,7 +173,7 @@ export const processMessage = async (AWS, region, service, account,
       ...msgBody,
       payload: {
         ...msgBody.payload,
-        ...procRes.workerResp,
+        ...(procRes.workerResp.res ? procRes.workerResp.res : procRes.workerResp),
       },
     },
     {
