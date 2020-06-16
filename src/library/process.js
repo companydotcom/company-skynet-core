@@ -165,6 +165,18 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+  let payload;
+
+  if (Object.prototype.hasOwnProperty.call(procRes, 'workerResp')) {
+    if (Object.prototype.hasOwnProperty.call(procRes.workerResp, 'res')) {
+      payload = procRes.workerResp.res;
+    } else {
+      payload = procRes.workerResp;
+    }
+  } else {
+    payload = undefined;
+  }
+
   // Publish the response SNS event
   await es.publish(
     AWS,
@@ -172,7 +184,7 @@ export const processMessage = async (AWS, region, service, account,
     {
       ...msgBody,
       inputPayload: msgBody.payload,
-      payload: procRes.workerResp.res ? procRes.workerResp.res : procRes.workerResp,
+      payload,
     },
     {
       ...msgAttribs,
