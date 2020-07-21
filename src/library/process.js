@@ -177,6 +177,14 @@ export const processMessage = async (AWS, region, service, account,
     payload = undefined;
   }
 
+  const getCompleteStatus = procResult => {
+    let result = procResult.status;
+    if (Object.prototype.hasOwnProperty.call(procResult, 'workerResp') && Object.prototype.hasOwnProperty.call(procResult.workerResp, 'extraStatus')) {
+      result = `${result}-${procResult.workerResp.extraStatus}`;
+    }
+    return result;
+  };
+
   // Publish the response SNS event
   await es.publish(
     AWS,
@@ -188,7 +196,7 @@ export const processMessage = async (AWS, region, service, account,
     },
     {
       ...msgAttribs,
-      status: procRes.status,
+      status: getCompleteStatus(procRes),
       eventId: uuid(),
       emitter: service,
     },
