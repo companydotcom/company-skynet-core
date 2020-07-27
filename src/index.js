@@ -2,6 +2,7 @@ import { handler as fH } from './handlers/fetch';
 import { handler as dTH } from './handlers/directTransition';
 import { handler as bTH } from './handlers/bulkTransition';
 import { handler as sDb } from './handlers/setupDatabase';
+import { handler as gpH } from './handlers/getPostHttp';
 
 /**
  * This is the fetch request handler
@@ -96,3 +97,15 @@ export const setupDatabase = async (AWS, d, s) => {
   // eslint-disable-next-line consistent-return
   return sDb(AWS, data, s);
 };
+
+/**
+ * This is the get http request handler
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} r is the region of AWS that this service is running in
+ * @param {string} s service is the name of the service
+ * @param {string} a account is AWS the account number
+ * @param {object} b is the event input
+ */
+export const httpReqHandler = async (AWS, r, s, a, b, c) => gpH(
+  AWS, r, s, a, b, c,
+);
