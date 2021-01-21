@@ -176,6 +176,12 @@ export const processMessage = async (AWS, region, service, account,
         {
           ...msgBody,
           payload: crmData,
+          metadata: {
+            eventType: 'sendFields',
+            dateCreated: Date.now(),
+            operationType: 'update',
+            invocationSource: service,
+          }
         },
         {
           ...msgAttribs,
