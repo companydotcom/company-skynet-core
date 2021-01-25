@@ -175,13 +175,13 @@ export const processMessage = async (AWS, region, service, account,
         `arn:aws:sns:${region}:${account}:event-bus`,
         {
           ...msgBody,
-          payload: crmData,
+          payload: procRes.workerResp.crmData,
           metadata: {
             eventType: 'sendFields',
             dateCreated: Date.now(),
             operationType: 'update',
             invocationSource: service,
-          }
+          },
         },
         {
           ...msgAttribs,
