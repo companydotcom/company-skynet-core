@@ -165,6 +165,35 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+  if (itemExists(procRes.workerResp, 'crmData')) {
+    if (typeof procRes.workerResp.crmData !== 'object') {
+      throw new Error('Data going to a CRM should be an object');
+    }
+    if (Object.keys(procRes.workerResp.crmData).length > 0) {
+      await es.publish(
+        AWS,
+        `arn:aws:sns:${region}:${account}:event-bus`,
+        {
+          ...msgBody,
+          payload: procRes.workerResp.crmData,
+          metadata: {
+            eventType: 'sendFields',
+            dateCreated: Date.now(),
+            operationType: 'update',
+            invocationSource: service,
+          },
+        },
+        {
+          ...msgAttribs,
+          status: 'trigger',
+          eventType: 'crm',
+          eventId: uuid(),
+          emitter: service,
+        },
+      );
+    }
+  }
+
   let payload;
 
   if (Object.prototype.hasOwnProperty.call(procRes, 'workerResp')) {

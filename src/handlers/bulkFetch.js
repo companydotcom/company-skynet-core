@@ -29,7 +29,7 @@ export const handler = async (
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
   }, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
-    console.log(`bulkTransition: INFO: Scheduled call started. Event is ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
+    console.log(`bulkFetch: INFO: Scheduled call started. Event is ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // Get the available capacity for making calls before going any further
     const availCap = await getAvailableCapacity(
@@ -47,24 +47,24 @@ export const handler = async (
     // If there is no capacity available, throw back an error and wait for the
     // function to be re-triggered again by cloud watch
     if (availCap < 1) {
-      throw new Error('bulkTransition: ERROR: No capacity to make a call');
+      throw new Error('bulkFetch: ERROR: No capacity to make a call');
     }
     const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap,
       `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`);
-    console.log(`bulkTransition: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
+    console.log(`bulkFetch: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
 
     let approvedMessages = messagesToProcess.map(m => sqsParser(m));
     if (preWorkerHook) {
-      approvedMessages = await preWorkerHook('transition', true, approvedMessages);
+      approvedMessages = await preWorkerHook('fetch', true, approvedMessages);
     }
 
     if (approvedMessages.length < 1) {
-      return 'bulkTransition: INFO: Processing complete';
+      return 'bulkFetch: INFO: Processing complete';
     }
 
     // Increment the 'calls made count' in the database to the number of
     // messages that will be processed this iteration
-    await incCallCount(AWS, service, approvedMessages.length);
+    await incCallCount(AWS, service, messagesToProcess.length);
 
     const proms = [];
 
@@ -78,9 +78,9 @@ export const handler = async (
     // Await completion of all promises
     await Promise.all(proms);
 
-    return 'bulkTransition: INFO: Processing complete';
+    return 'bulkFetch: INFO: Processing complete';
   } catch (e) {
-    console.log(`bulkTransition: ERROR: ${getErrorString(e)}`);
+    console.log(`bulkFetch: ERROR: ${getErrorString(e)}`);
     throw e;
   }
 };

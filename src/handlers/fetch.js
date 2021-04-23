@@ -3,7 +3,7 @@ import { processMessage } from '../library/process';
 import { getErrorString } from '../library/util';
 import { parseMsg as sqsParser } from '../library/queue';
 import {
-  getAvaiableCallsThisSec as getAvailableCapacity,
+  getAvailableCallsThisSec as getAvailableCapacity,
   incrementUsedCount as incCallCount,
 } from '../library/throttle';
 
@@ -17,6 +17,7 @@ import {
  * @param {string} account is AWS the account number
  * @param {object} event that invokes the serverless function. In this case, it is a cloud watch trigger
  * @param {function} mHndlr is the handler/ worker that works on the message applying business logic
+ * @param {function} preWorkerHook custom logic to handle complex throttling or prioritization
  * @returns {string}
  * @throws {Error}
  */
@@ -24,7 +25,7 @@ export const handler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  }, region, service, account, event, mHndlr) => {
+  }, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
     console.log(`directFetch: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
@@ -46,6 +47,15 @@ export const handler = async (
     );
     console.log(`directFetch: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
 
+    let approvedMessages = [sqsParser(event.Records[0])];
+    if (preWorkerHook) {
+      approvedMessages = await preWorkerHook('fetch', false, approvedMessages);
+    }
+
+    if (!approvedMessages.length) {
+      throw new Error('directFetch: ERROR: Processing complete.  Pre-worker hook rejected message.');
+    }
+
     // If there is no available capacity to make calls, throw an error which
     // will put back the message in the queue where it came from
     if (availCap < 1) {
@@ -57,7 +67,7 @@ export const handler = async (
     await incCallCount(AWS, service);
 
     // Parse the message using the sqsParser function from queue library
-    const { msgBody, msgAttribs } = sqsParser(event.Records[0]);
+    const { msgBody, msgAttribs } = approvedMessages[0];
 
     // Call the message processer to process the message which includes error
     // handling and publishing response to SNS

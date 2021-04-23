@@ -92,7 +92,7 @@ export const getCallsMade = async (AWS, serviceName) => {
  * @param {Boolean} bulk tells whether the call is going to be bulk or direct
  * @returns {Number}
  */
-export const getAvaiableCallsThisSec = async (
+export const getAvailableCallsThisSec = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
@@ -143,7 +143,7 @@ export const getAvaiableCallsThisSec = async (
   }
 
   return availLmt > 0
-    ? availLmt : getAvaiableCallsThisSec(
+    ? availLmt : getAvailableCallsThisSec(
       AWS,
       {
         throttleLmts,
