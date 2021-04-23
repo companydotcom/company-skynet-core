@@ -12,20 +12,20 @@ import { handler as gpH } from './handlers/getPostHttp';
  * @param {string} s service is the name of the service
  * @param {string} a account is AWS the account number
  * @param {object} b is the event input
- * @param {function} h is the preworker hook
  * @param {function} c is the worker function that has the business logic to process the request
+ * @param {function} h is the preworker hook
  */
 export const fetchHandler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, h, c) => {
+  }, r, s, a, b, c, h) => {
   return fH(
     AWS,
     {
       throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, h, c,
+    }, r, s, a, b, c, h,
   );
 };
 
@@ -37,20 +37,20 @@ export const fetchHandler = async (
  * @param {string} s service is the name of the service
  * @param {string} a account is AWS the account number
  * @param {object} b is the event input
- * @param {function} h is the preworker hook
  * @param {function} c is the worker function that has the business logic to process the request
+ * @param {function} h is the preworker hook
  */
 export const directTransitionHandler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, h, c) => {
+  }, r, s, a, b, c, h) => {
   return dTH(
     AWS,
     {
       throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, h, c,
+    }, r, s, a, b, c, h,
   );
 };
 
@@ -61,22 +61,21 @@ export const directTransitionHandler = async (
  * @param {string} r is the region of AWS that this service is running in
  * @param {string} s service is the name of the service
  * @param {string} a account is AWS the account number
- * @param {function} h is the preworker hook
  * @param {object} b is the event input
-
  * @param {function} c is the worker function that has the business logic to process the request
+ * @param {function} h is the preworker hook
  */
 export const bulkTransitionHandler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, c) => {
+  }, r, s, a, b, c, h) => {
   return bTH(
     AWS,
     {
       throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, c,
+    }, r, s, a, b, c, h,
   );
 };
 

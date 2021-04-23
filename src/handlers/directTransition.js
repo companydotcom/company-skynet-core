@@ -45,7 +45,7 @@ export const handler = async (
 
     let approvedMessages = [sqsParser(event.Records[0])];
     if (preWorkerHook) {
-      approvedMessages = preWorkerHook('fetch', false, approvedMessages);
+      approvedMessages = await preWorkerHook('fetch', false, approvedMessages);
     }
 
     if (!approvedMessages.length) {
