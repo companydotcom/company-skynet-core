@@ -16,8 +16,8 @@ import {
  * @param {string} service is the name of the service
  * @param {string} account is AWS the account number
  * @param {object} event that invokes the serverless function. In this case, it is a cloud watch trigger
- * @param {function} preWorkerHook custom logic to handle complex throttling or prioritization
  * @param {function} mHndlr is the handler/ worker that works on the message applying business logic
+ * @param {function} preWorkerHook custom logic to handle complex throttling or prioritization
  * @returns {string}
  * @throws {Error}
  */
@@ -25,7 +25,7 @@ export const handler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  }, region, service, account, event, preWorkerHook, mHndlr) => {
+  }, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
     console.log(`directFetch: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
@@ -47,7 +47,10 @@ export const handler = async (
     );
     console.log(`directFetch: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
 
-    const approvedMessages = preWorkerHook('fetch', false, [sqsParser(event.Records[0])]);
+    let approvedMessages = [sqsParser(event.Records[0])];
+    if (preWorkerHook) {
+      approvedMessages = preWorkerHook('fetch', false, approvedMessages);
+    }
 
     if (!approvedMessages.length) {
       throw new Error('directFetch: ERROR: Processing complete.  Pre-worker hook rejected message.');

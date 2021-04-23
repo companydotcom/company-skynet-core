@@ -18,8 +18,8 @@ import {
  * @param {string} service is the name of the service
  * @param {string} account is AWS the account number
  * @param {object} event that invokes the serverless function. In this case, it is a cloud watch trigger
- * @param {function} preWorkerHook custom logic to handle complex throttling or prioritization
  * @param {function} mHndlr is the handler/ worker that works on the message applying business logic
+ * @param {function} preWorkerHook custom logic to handle complex throttling or prioritization
  * @returns {string}
  * @throws {Error}
  */
@@ -27,7 +27,7 @@ export const handler = async (
   AWS,
   {
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  }, region, service, account, event, preWorkerHook, mHndlr) => {
+  }, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
     console.log(`bulkTransition: INFO: Scheduled call started. Event is ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
@@ -49,11 +49,14 @@ export const handler = async (
     if (availCap < 1) {
       throw new Error('bulkTransition: ERROR: No capacity to make a call');
     }
-    const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap),
+    const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap,
       `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`);
     console.log(`bulkTransition: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
 
-    const approvedMessages = await preWorkerHook('transition', true, messagesToProcess.map(m => sqsParser(m)));
+    let approvedMessages = messagesToProcess.map(m => sqsParser(m));
+    if (preWorkerHook) {
+      approvedMessages = await preWorkerHook('transition', true, approvedMessages);
+    }
 
     if (approvedMessages.length < 1) {
       return 'bulkTransition: INFO: Processing complete';
