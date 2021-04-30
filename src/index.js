@@ -30,6 +30,31 @@ export const fetchHandler = async (
 };
 
 /**
+ * This is the fetch request handler
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param { throttleLmts: object, safeThrottleLimit: int, reserveCapForDirect: int, retryCntForCapacity: int } are the throttle limits
+ * @param {string} r is the region of AWS that this service is running in
+ * @param {string} s service is the name of the service
+ * @param {string} a account is AWS the account number
+ * @param {object} b is the event input
+ * @param {function} c is the worker function that has the business logic to process the request
+ * @param {function} h is the preworker hook
+ */
+export const bulkFetchHandler = async (
+  AWS,
+  {
+    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    // eslint-disable-next-line arrow-body-style
+  }, r, s, a, b, c, h) => {
+  return fH(
+    AWS,
+    {
+      throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    }, r, s, a, b, c, h,
+  );
+};
+
+/**
  * This is the direct transition request handler
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param { throttleLmts: object, safeThrottleLimit: int, reserveCapForDirect: int, retryCntForCapacity: int } are the throttle limits
