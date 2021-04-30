@@ -56,12 +56,12 @@ const getCurrentUserData = async (AWS, userId) => {
  * @param {string} service is the name of the service
  * @param { string } account is AWS the account number
  * @param { msgBody: object, msgAttribs: object, rcptHandle: string } is the message object containing properties msgBody (Body of the SNS message), msgAttribs (Message attributes of the SNS message) and rcptHandle (Message receipt handle for the message from SQS)
- * @param {Function} msgHandler is the handler function that will proess the message
+ * @param {Function} msgHandler is the handler function that will process the message
  * @returns {Boolean}
  * @throws {Error}
  */
 export const processMessage = async (AWS, region, service, account,
-  { msgBody, msgAttribs, rcptHandle }, msgHandler) => {
+  { msgBody, msgAttribs, rcptHandle }, eventType, msgHandler) => {
   // Use the neverThrowError function from utils to process the message making
   // sure that no error is thrown back
 
@@ -236,7 +236,7 @@ export const processMessage = async (AWS, region, service, account,
     await deleteMsgFromQueue(
       AWS,
       region,
-      `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`,
+      msgAttribs.eventType === 'transition' ? `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq` : `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`,
       rcptHandle,
     );
   }
