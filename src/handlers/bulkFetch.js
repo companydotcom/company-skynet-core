@@ -50,7 +50,7 @@ export const handler = async (
       throw new Error('bulkFetch: ERROR: No capacity to make a call');
     }
     const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap,
-      `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`);
+      `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`);
     console.log(`bulkFetch: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
 
     let approvedMessages = messagesToProcess.map(m => sqsParser(m));

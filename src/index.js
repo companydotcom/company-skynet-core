@@ -1,4 +1,5 @@
 import { handler as fH } from './handlers/fetch';
+import { handler as bFH } from './handlers/bulkFetch';
 import { handler as dTH } from './handlers/directTransition';
 import { handler as bTH } from './handlers/bulkTransition';
 import { handler as sDb } from './handlers/setupDatabase';
@@ -46,7 +47,7 @@ export const bulkFetchHandler = async (
     throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
   }, r, s, a, b, c, h) => {
-  return fH(
+  return bFH(
     AWS,
     {
       throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
