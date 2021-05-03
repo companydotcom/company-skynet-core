@@ -61,7 +61,7 @@ const getCurrentUserData = async (AWS, userId) => {
  * @throws {Error}
  */
 export const processMessage = async (AWS, region, service, account,
-  { msgBody, msgAttribs, rcptHandle }, eventType, msgHandler) => {
+  { msgBody, msgAttribs, rcptHandle }, msgHandler) => {
   // Use the neverThrowError function from utils to process the message making
   // sure that no error is thrown back
 
