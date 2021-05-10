@@ -105,6 +105,16 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+  /*
+    Check serviceUserData & serviceAccountData for
+    "refId" key
+    If present, look up appropriate user/account,
+    use the serviceUserData/serviceAccountData from that account
+    add some flag so that that entity receives any updates
+
+    Where is this getting written
+  */
+
   const procRes = await neverThrowError({
     message: msgBody,
     serviceConfigData: typeof dbConfig !== 'undefined'
@@ -121,6 +131,9 @@ export const processMessage = async (AWS, region, service, account,
     if (typeof procRes.workerResp.serviceAccountData !== 'object') {
       throw new Error('Service specific user account data should be an object');
     }
+    /*
+      Check if accountData should go to a linked account
+    */
     if (itemExists(msgBody, 'context')
       && itemExists(msgBody.context, 'user')
       && itemExists(msgBody.context.user, 'accountId')) {
@@ -145,6 +158,9 @@ export const processMessage = async (AWS, region, service, account,
     if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
     }
+    /*
+      Check if userData should go to a linked user
+    */
     if (itemExists(msgBody, 'context')
       && itemExists(msgBody.context, 'user')
       && itemExists(msgBody.context.user, 'userId')) {
