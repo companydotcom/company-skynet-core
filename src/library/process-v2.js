@@ -64,7 +64,6 @@ const retrievePrimaryAccountVendorData = () => {};
  */
 const saveVendorDataToPrimary = () => {};
 
-
 /**
  * @function handleJointAccounts
  *
