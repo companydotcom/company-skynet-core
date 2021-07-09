@@ -89,6 +89,9 @@ export const processMessage = async (AWS, region, service, account,
       && itemExists(accData.vendorData, `${service}`)) {
       serviceAccountData = accData.vendorData[`${service}`];
     }
+    if (!itemExists(msgBody.context, account)) {
+      msgBody.context.account = accData;
+    }
   }
 
   // eslint-disable-next-line no-undef-init
