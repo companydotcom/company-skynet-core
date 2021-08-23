@@ -1,7 +1,7 @@
 import uuid from 'uuid/v4';
 import { isArray } from 'util';
 
-import { neverThrowError, itemExists } from './util';
+import { neverThrowError, itemExists, evaluateSharedVendorData } from './util';
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from './dynamo';
 import es from './eventStream';
 import {
@@ -94,6 +94,23 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+  // eslint-disable-next-line
+  let sharedServiceAccountData = {};
+  if (itemExists(msgBody, 'context')
+  && itemExists(msgBody.context, 'user')
+  && itemExists(msgBody.context.user, 'accountId')) {
+    const accData = await getCurrentAccountData(
+      AWS, msgBody.context.user.accountId,
+    );
+    if (itemExists(accData, 'sharedVendorData')) {
+      sharedServiceAccountData = evaluateSharedVendorData(accData.sharedServiceAccountData, service);
+    }
+    if (!itemExists(msgBody.context, account)) {
+      // eslint-disable-next-line
+      msgBody.context.account = accData;
+    }
+  }
+
   // eslint-disable-next-line no-undef-init
   let serviceUserData = {};
   if (itemExists(msgBody, 'context')
@@ -108,6 +125,20 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+
+  // eslint-disable-next-line
+  let sharedServiceUserData = {};
+  if (itemExists(msgBody, 'context')
+    && itemExists(msgBody.context, 'user')
+    && itemExists(msgBody.context.user, 'userId')) {
+    const userData = await getCurrentUserData(
+      AWS, msgBody.context.user.userId,
+    );
+    if (itemExists(userData, 'sharedVendorData')) {
+      sharedServiceUserData = evaluateSharedVendorData(userData.sharedServiceAccountData, service);
+    }
+  }
+
   const procRes = await neverThrowError({
     message: msgBody,
     serviceConfigData: typeof dbConfig !== 'undefined'
@@ -115,7 +146,9 @@ export const processMessage = async (AWS, region, service, account,
       && typeof dbConfig[0].configdata !== 'undefined'
       ? dbConfig[0].configdata : [],
     serviceAccountData,
+    sharedServiceAccountData,
     serviceUserData,
+    sharedServiceUserData,
     attributes: msgAttribs,
   }, msgHandler);
   console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
@@ -144,6 +177,30 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
+  if (itemExists(procRes.workerResp, 'sharedServiceAccountData')) {
+    if (typeof procRes.workerResp.sharedServiceAccountData !== 'object') {
+      throw new Error('Shared service account data should be an object');
+    }
+    if (itemExists(msgBody, 'context')
+      && itemExists(msgBody.context, 'user')
+      && itemExists(msgBody.context.user, 'accountId')) {
+      const currAccData = await getCurrentAccountData(
+        AWS, msgBody.context.user.accountId,
+      );
+      if (!itemExists(currAccData, 'sharedVendorData')) {
+        currAccData.sharedVendorData = {};
+      }
+      if (!itemExists(currAccData.sharedVendorData, `${service}`)) {
+        currAccData.sharedVendorData[`${service}`] = {};
+      }
+      currAccData.sharedVendorData[`${service}`] = {
+        ...currAccData.sharedVendorData[`${service}`],
+        ...procRes.workerResp.sharedServiceAccountData,
+      };
+      await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
+    }
+  }
+
   if (itemExists(procRes.workerResp, 'serviceUserData')) {
     if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
@@ -163,6 +220,30 @@ export const processMessage = async (AWS, region, service, account,
       currUserData.vendorData[`${service}`] = {
         ...currUserData.vendorData[`${service}`],
         ...procRes.workerResp.serviceUserData,
+      };
+      await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
+    }
+  }
+
+  if (itemExists(procRes.workerResp, 'sharedServiceUserData')) {
+    if (typeof procRes.workerResp.sharedServiceUserData !== 'object') {
+      throw new Error('Service specific user data should be an object');
+    }
+    if (itemExists(msgBody, 'context')
+      && itemExists(msgBody.context, 'user')
+      && itemExists(msgBody.context.user, 'userId')) {
+      const currUserData = await getCurrentUserData(
+        AWS, msgBody.context.user.userId,
+      );
+      if (!itemExists(currUserData, 'sharedVendorData')) {
+        currUserData.sharedVendorData = {};
+      }
+      if (!itemExists(currUserData.sharedVendorData, `${service}`)) {
+        currUserData.sharedVendorData[`${service}`] = {};
+      }
+      currUserData.sharedVendorData[`${service}`] = {
+        ...currUserData.sharedVendorData[`${service}`],
+        ...procRes.workerResp.sharedServiceUserData,
       };
       await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
     }

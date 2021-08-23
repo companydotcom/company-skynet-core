@@ -11,7 +11,7 @@ export const parseJson = v => {
   }
 };
 
-export const deepParseJson = (jsonString) => {
+export const deepParseJson = jsonString => {
   if (typeof jsonString === 'string') {
     if (!isNaN(Number(jsonString))) {
       return jsonString;
@@ -31,7 +31,7 @@ export const deepParseJson = (jsonString) => {
   } else {
     return jsonString;
   }
-}
+};
 
 /**
  * Returns the string equivalent meaning for given HTTP status code
@@ -134,6 +134,19 @@ export const sleep = async s => new Promise(r => setTimeout(() => { r(); }, s));
  * @returns {Boolean}
  */
 // eslint-disable-next-line max-len
-export const itemExists = (obj, param) => typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(
+export const itemExists = (obj, param) => (typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(
   obj, param,
-) : false;
+) : false);
+
+export const evaluateSharedVendorData = (sharedVendorData, service) => {
+  const readableSharedVendorData = {};
+
+  // eslint-disable-next-line
+  for (const [key, value] of Object.entries(sharedVendorData)) {
+    if (value.servicesToShareWith && value.servicesToShareWith.includes(service)) {
+      readableSharedVendorData[key] = value;
+    }
+  }
+
+  return readableSharedVendorData;
+};
