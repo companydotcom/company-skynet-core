@@ -163,7 +163,7 @@ export const evaluateSharedMicroApplicationData = (sharedMicroApplicationData, s
   // eslint-disable-next-line
   for (const [key, value] of Object.entries(sharedMicroApplicationData)) {
     if (value.microApplicationsToShareWith.includes(service) || value.microApplicationsToShareWith.includes('*')) {
-      readableSharedMicroApplicationData[key] = value;
+      readableSharedMicroApplicationData[key] = value.serviceData;
     }
   }
 

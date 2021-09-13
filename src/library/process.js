@@ -193,10 +193,10 @@ export const processMessage = async (
         currAccData.sharedMicroApplicationAccountData = {};
       }
       if (!itemExists(currAccData.sharedMicroApplicationAccountData, `${service}`)) {
-        currAccData.sharedMicroApplicationAccountData[`${service}`] = {};
-      }
-      if (!itemExists(currAccData.sharedMicroApplicationAccountData[`${service}`], 'microApplicationsToShareWith')) {
-        currAccData.sharedMicroApplicationAccountData[`${service}`].microApplicationsToShareWith = [];
+        currAccData.sharedMicroApplicationAccountData[`${service}`] = {
+          microApplicationsToShareWith: [],
+          serviceData: {},
+        };
       }
       currAccData.sharedMicroApplicationAccountData[`${service}`] = {
         ...currAccData.sharedMicroApplicationAccountData[`${service}`],
@@ -244,10 +244,10 @@ export const processMessage = async (
         currUserData.sharedMicroApplicationUserData = {};
       }
       if (!itemExists(currUserData.sharedMicroApplicationUserData, `${service}`)) {
-        currUserData.sharedMicroApplicationUserData[`${service}`] = {};
-      }
-      if (!itemExists(currAccData.sharedMicroApplicationUserData[`${service}`], 'microApplicationsToShareWith')) {
-        currAccData.sharedMicroApplicationUserData[`${service}`].microApplicationsToShareWith = [];
+        currUserData.sharedMicroApplicationUserData[`${service}`] = {
+          microApplicationsToShareWith: [],
+          serviceData: {},
+        };
       }
       currUserData.sharedMicroApplicationUserData[`${service}`] = {
         ...currUserData.sharedMicroApplicationUserData[`${service}`],
