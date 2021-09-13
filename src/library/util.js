@@ -166,7 +166,7 @@ export const evaluateSharedMicroApplicationData = (sharedMicroApplicationData, s
       (value.microApplicationsToShareWith.length && value.microApplicationsToShareWith.includes(service)) ||
       value.microApplicationsToShareWith.includes('*')
     ) {
-      readableSharedMicroApplicationData[key] = value.serviceData;
+      readableSharedMicroApplicationData[key] = service === key ? value : value.serviceData;
     }
   }
 
