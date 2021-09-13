@@ -1,13 +1,9 @@
-import uuid from 'uuid/v4';
-import { isArray } from 'util';
+import { v4 as uuid } from 'uuid';
 
-import { neverThrowError, itemExists, evaluateSharedVendorData } from './util';
+import { neverThrowError, itemExists, evaluateSharedMicroApplicationData } from './util';
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from './dynamo';
 import es from './eventStream';
-import {
-  deleteMsg as deleteMsgFromQueue,
-  sendMsg as sendSqsMsg,
-} from './queue';
+import { deleteMsg as deleteMsgFromQueue, sendMsg as sendSqsMsg } from './queue';
 
 /**
  * Get the current account data from the database for the given accountId
@@ -15,17 +11,14 @@ import {
  * @param {string} accountId is the accountId for which the data needs to be fetched
  */
 const getCurrentAccountData = async (AWS, accountId) => {
-  const fetchResponse = await fetchRecordsByQuery(
-    AWS,
-    {
-      TableName: 'Account',
-      ExpressionAttributeNames: { '#pk': 'accountId' },
-      KeyConditionExpression: '#pk = :accId',
-      ExpressionAttributeValues: {
-        ':accId': { S: accountId },
-      },
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'Account',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
+    ExpressionAttributeValues: {
+      ':accId': { S: accountId },
     },
-  );
+  });
   return fetchResponse[0];
 };
 
@@ -35,17 +28,14 @@ const getCurrentAccountData = async (AWS, accountId) => {
  * @param {string} userId is the userId for which the data needs to be fetched
  */
 const getCurrentUserData = async (AWS, userId) => {
-  const fetchResponse = await fetchRecordsByQuery(
-    AWS,
-    {
-      TableName: 'User',
-      ExpressionAttributeNames: { '#pk': 'userId' },
-      KeyConditionExpression: '#pk = :uId',
-      ExpressionAttributeValues: {
-        ':uId': { S: userId },
-      },
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
+    ExpressionAttributeValues: {
+      ':uId': { S: userId },
     },
-  );
+  });
   return fetchResponse[0];
 };
 
@@ -60,33 +50,35 @@ const getCurrentUserData = async (AWS, userId) => {
  * @returns {Boolean}
  * @throws {Error}
  */
-export const processMessage = async (AWS, region, service, account,
-  { msgBody, msgAttribs, rcptHandle }, msgHandler) => {
+export const processMessage = async (
+  AWS,
+  region,
+  service,
+  account,
+  { msgBody, msgAttribs, rcptHandle },
+  msgHandler,
+) => {
   // Use the neverThrowError function from utils to process the message making
   // sure that no error is thrown back
 
-  const dbConfig = await fetchRecordsByQuery(
-    AWS,
-    {
-      TableName: 'vendorConfig',
-      ExpressionAttributeNames: { '#pk': 'service' },
-      KeyConditionExpression: '#pk = :serv',
-      ExpressionAttributeValues: {
-        ':serv': { S: `${service}` },
-      },
+  const dbConfig = await fetchRecordsByQuery(AWS, {
+    TableName: 'vendorConfig',
+    ExpressionAttributeNames: { '#pk': 'service' },
+    KeyConditionExpression: '#pk = :serv',
+    ExpressionAttributeValues: {
+      ':serv': { S: `${service}` },
     },
-  );
+  });
 
   // eslint-disable-next-line no-undef-init
   let serviceAccountData = {};
-  if (itemExists(msgBody, 'context')
-    && itemExists(msgBody.context, 'user')
-    && itemExists(msgBody.context.user, 'accountId')) {
-    const accData = await getCurrentAccountData(
-      AWS, msgBody.context.user.accountId,
-    );
-    if (itemExists(accData, 'vendorData')
-      && itemExists(accData.vendorData, `${service}`)) {
+  if (
+    itemExists(msgBody, 'context') &&
+    itemExists(msgBody.context, 'user') &&
+    itemExists(msgBody.context.user, 'accountId')
+  ) {
+    const accData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
+    if (itemExists(accData, 'vendorData') && itemExists(accData.vendorData, `${service}`)) {
       serviceAccountData = accData.vendorData[`${service}`];
     }
     if (!itemExists(msgBody.context, account)) {
@@ -95,15 +87,18 @@ export const processMessage = async (AWS, region, service, account,
   }
 
   // eslint-disable-next-line
-  let sharedServiceAccountData = {};
-  if (itemExists(msgBody, 'context')
-  && itemExists(msgBody.context, 'user')
-  && itemExists(msgBody.context.user, 'accountId')) {
-    const accData = await getCurrentAccountData(
-      AWS, msgBody.context.user.accountId,
-    );
-    if (itemExists(accData, 'sharedVendorData')) {
-      sharedServiceAccountData = evaluateSharedVendorData(accData.sharedServiceAccountData, service);
+  let sharedMicroApplicationAccountData = {};
+  if (
+    itemExists(msgBody, 'context') &&
+    itemExists(msgBody.context, 'user') &&
+    itemExists(msgBody.context.user, 'accountId')
+  ) {
+    const accData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
+    if (itemExists(accData, 'sharedMicroApplicationAccountData')) {
+      sharedMicroApplicationAccountData = evaluateSharedMicroApplicationData(
+        accData.sharedMicroApplicationAccountData,
+        service,
+      );
     }
     if (!itemExists(msgBody.context, account)) {
       // eslint-disable-next-line
@@ -113,56 +108,63 @@ export const processMessage = async (AWS, region, service, account,
 
   // eslint-disable-next-line no-undef-init
   let serviceUserData = {};
-  if (itemExists(msgBody, 'context')
-    && itemExists(msgBody.context, 'user')
-    && itemExists(msgBody.context.user, 'userId')) {
-    const userData = await getCurrentUserData(
-      AWS, msgBody.context.user.userId,
-    );
-    if (itemExists(userData, 'vendorData')
-      && itemExists(userData.vendorData, `${service}`)) {
+  if (
+    itemExists(msgBody, 'context') &&
+    itemExists(msgBody.context, 'user') &&
+    itemExists(msgBody.context.user, 'userId')
+  ) {
+    const userData = await getCurrentUserData(AWS, msgBody.context.user.userId);
+    if (itemExists(userData, 'vendorData') && itemExists(userData.vendorData, `${service}`)) {
       serviceUserData = userData.vendorData[`${service}`];
     }
   }
 
-
   // eslint-disable-next-line
-  let sharedServiceUserData = {};
-  if (itemExists(msgBody, 'context')
-    && itemExists(msgBody.context, 'user')
-    && itemExists(msgBody.context.user, 'userId')) {
-    const userData = await getCurrentUserData(
-      AWS, msgBody.context.user.userId,
-    );
-    if (itemExists(userData, 'sharedVendorData')) {
-      sharedServiceUserData = evaluateSharedVendorData(userData.sharedServiceAccountData, service);
+  let sharedMicroApplicationUserData = {};
+  if (
+    itemExists(msgBody, 'context') &&
+    itemExists(msgBody.context, 'user') &&
+    itemExists(msgBody.context.user, 'userId')
+  ) {
+    const userData = await getCurrentUserData(AWS, msgBody.context.user.userId);
+    if (itemExists(userData, 'sharedMicroApplicationUserData')) {
+      sharedMicroApplicationUserData = evaluateSharedMicroApplicationData(
+        userData.sharedMicroApplicationUserData,
+        service,
+      );
     }
   }
 
-  const procRes = await neverThrowError({
-    message: msgBody,
-    serviceConfigData: typeof dbConfig !== 'undefined'
-      && isArray(dbConfig) && dbConfig.length > 0
-      && typeof dbConfig[0].configdata !== 'undefined'
-      ? dbConfig[0].configdata : [],
-    serviceAccountData,
-    sharedServiceAccountData,
-    serviceUserData,
-    sharedServiceUserData,
-    attributes: msgAttribs,
-  }, msgHandler);
+  const procRes = await neverThrowError(
+    {
+      message: msgBody,
+      serviceConfigData:
+        typeof dbConfig !== 'undefined' &&
+        Array.isArray(dbConfig) &&
+        dbConfig.length > 0 &&
+        typeof dbConfig[0].configdata !== 'undefined'
+          ? dbConfig[0].configdata
+          : [],
+      serviceAccountData,
+      sharedMicroApplicationAccountData,
+      serviceUserData,
+      sharedMicroApplicationUserData,
+      attributes: msgAttribs,
+    },
+    msgHandler,
+  );
   console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
 
   if (itemExists(procRes.workerResp, 'serviceAccountData')) {
     if (typeof procRes.workerResp.serviceAccountData !== 'object') {
       throw new Error('Service specific user account data should be an object');
     }
-    if (itemExists(msgBody, 'context')
-      && itemExists(msgBody.context, 'user')
-      && itemExists(msgBody.context.user, 'accountId')) {
-      const currAccData = await getCurrentAccountData(
-        AWS, msgBody.context.user.accountId,
-      );
+    if (
+      itemExists(msgBody, 'context') &&
+      itemExists(msgBody.context, 'user') &&
+      itemExists(msgBody.context.user, 'accountId')
+    ) {
+      const currAccData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
       if (!itemExists(currAccData, 'vendorData')) {
         currAccData.vendorData = {};
       }
@@ -177,25 +179,28 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
-  if (itemExists(procRes.workerResp, 'sharedServiceAccountData')) {
-    if (typeof procRes.workerResp.sharedServiceAccountData !== 'object') {
+  if (itemExists(procRes.workerResp, 'sharedMicroApplicationAccountData')) {
+    if (typeof procRes.workerResp.sharedMicroApplicationAccountData !== 'object') {
       throw new Error('Shared service account data should be an object');
     }
-    if (itemExists(msgBody, 'context')
-      && itemExists(msgBody.context, 'user')
-      && itemExists(msgBody.context.user, 'accountId')) {
-      const currAccData = await getCurrentAccountData(
-        AWS, msgBody.context.user.accountId,
-      );
-      if (!itemExists(currAccData, 'sharedVendorData')) {
-        currAccData.sharedVendorData = {};
+    if (
+      itemExists(msgBody, 'context') &&
+      itemExists(msgBody.context, 'user') &&
+      itemExists(msgBody.context.user, 'accountId')
+    ) {
+      const currAccData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
+      if (!itemExists(currAccData, 'sharedMicroApplicationAccountData')) {
+        currAccData.sharedMicroApplicationAccountData = {};
       }
-      if (!itemExists(currAccData.sharedVendorData, `${service}`)) {
-        currAccData.sharedVendorData[`${service}`] = {};
+      if (!itemExists(currAccData.sharedMicroApplicationAccountData, `${service}`)) {
+        currAccData.sharedMicroApplicationAccountData[`${service}`] = {};
       }
-      currAccData.sharedVendorData[`${service}`] = {
-        ...currAccData.sharedVendorData[`${service}`],
-        ...procRes.workerResp.sharedServiceAccountData,
+      if (!itemExists(currAccData.sharedMicroApplicationAccountData[`${service}`], 'microApplicationsToShareWith')) {
+        currAccData.sharedMicroApplicationAccountData[`${service}`].microApplicationsToShareWith = [];
+      }
+      currAccData.sharedMicroApplicationAccountData[`${service}`] = {
+        ...currAccData.sharedMicroApplicationAccountData[`${service}`],
+        ...procRes.workerResp.sharedMicroApplicationAccountData,
       };
       await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
     }
@@ -205,12 +210,12 @@ export const processMessage = async (AWS, region, service, account,
     if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
     }
-    if (itemExists(msgBody, 'context')
-      && itemExists(msgBody.context, 'user')
-      && itemExists(msgBody.context.user, 'userId')) {
-      const currUserData = await getCurrentUserData(
-        AWS, msgBody.context.user.userId,
-      );
+    if (
+      itemExists(msgBody, 'context') &&
+      itemExists(msgBody.context, 'user') &&
+      itemExists(msgBody.context.user, 'userId')
+    ) {
+      const currUserData = await getCurrentUserData(AWS, msgBody.context.user.userId);
       if (!itemExists(currUserData, 'vendorData')) {
         currUserData.vendorData = {};
       }
@@ -225,25 +230,28 @@ export const processMessage = async (AWS, region, service, account,
     }
   }
 
-  if (itemExists(procRes.workerResp, 'sharedServiceUserData')) {
-    if (typeof procRes.workerResp.sharedServiceUserData !== 'object') {
-      throw new Error('Service specific user data should be an object');
+  if (itemExists(procRes.workerResp, 'sharedMicroApplicationUserData')) {
+    if (typeof procRes.workerResp.sharedMicroApplicationUserData !== 'object') {
+      throw new Error('Shared service user data should be an object');
     }
-    if (itemExists(msgBody, 'context')
-      && itemExists(msgBody.context, 'user')
-      && itemExists(msgBody.context.user, 'userId')) {
-      const currUserData = await getCurrentUserData(
-        AWS, msgBody.context.user.userId,
-      );
-      if (!itemExists(currUserData, 'sharedVendorData')) {
-        currUserData.sharedVendorData = {};
+    if (
+      itemExists(msgBody, 'context') &&
+      itemExists(msgBody.context, 'user') &&
+      itemExists(msgBody.context.user, 'userId')
+    ) {
+      const currUserData = await getCurrentUserData(AWS, msgBody.context.user.userId);
+      if (!itemExists(currUserData, 'sharedMicroApplicationUserData')) {
+        currUserData.sharedMicroApplicationUserData = {};
       }
-      if (!itemExists(currUserData.sharedVendorData, `${service}`)) {
-        currUserData.sharedVendorData[`${service}`] = {};
+      if (!itemExists(currUserData.sharedMicroApplicationUserData, `${service}`)) {
+        currUserData.sharedMicroApplicationUserData[`${service}`] = {};
       }
-      currUserData.sharedVendorData[`${service}`] = {
-        ...currUserData.sharedVendorData[`${service}`],
-        ...procRes.workerResp.sharedServiceUserData,
+      if (!itemExists(currAccData.sharedMicroApplicationUserData[`${service}`], 'microApplicationsToShareWith')) {
+        currAccData.sharedMicroApplicationUserData[`${service}`].microApplicationsToShareWith = [];
+      }
+      currUserData.sharedMicroApplicationUserData[`${service}`] = {
+        ...currUserData.sharedMicroApplicationUserData[`${service}`],
+        ...procRes.workerResp.sharedMicroApplicationUserData,
       };
       await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
     }
@@ -290,9 +298,12 @@ export const processMessage = async (AWS, region, service, account,
     payload = undefined;
   }
 
-  const getCompleteStatus = procResult => {
+  const getCompleteStatus = (procResult) => {
     let result = procResult.status;
-    if (Object.prototype.hasOwnProperty.call(procResult, 'workerResp') && Object.prototype.hasOwnProperty.call(procResult.workerResp, 'extraStatus')) {
+    if (
+      Object.prototype.hasOwnProperty.call(procResult, 'workerResp') &&
+      Object.prototype.hasOwnProperty.call(procResult.workerResp, 'extraStatus')
+    ) {
       result = `${result}-${procResult.workerResp.extraStatus}`;
     }
     return result;
@@ -320,7 +331,9 @@ export const processMessage = async (AWS, region, service, account,
     await deleteMsgFromQueue(
       AWS,
       region,
-      msgAttribs.eventType === 'transition' ? `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq` : `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`,
+      msgAttribs.eventType === 'transition'
+        ? `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`
+        : `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`,
       rcptHandle,
     );
   }

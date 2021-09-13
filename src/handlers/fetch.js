@@ -1,4 +1,3 @@
-
 import { processMessage } from '../library/process';
 import { getErrorString } from '../library/util';
 import { parseMsg as sqsParser } from '../library/queue';
@@ -23,16 +22,25 @@ import {
  */
 export const handler = async (
   AWS,
-  {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  }, region, service, account, event, mHndlr, preWorkerHook) => {
+  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
+  region,
+  service,
+  account,
+  event,
+  mHndlr,
+  preWorkerHook,
+) => {
   try {
     console.log(`directFetch: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // If there are no records to process or more than one record to process,
     // throw an error as it is an invalid event
     if (typeof event.Records === 'undefined' || event.Records.length !== 1) {
-      throw new Error(`directFetch: ERROR: Lambda was wrongly triggered with ${typeof event.Records === 'undefined' ? 0 : event.Records.length} records`);
+      throw new Error(
+        `directFetch: ERROR: Lambda was wrongly triggered with ${
+          typeof event.Records === 'undefined' ? 0 : event.Records.length
+        } records`,
+      );
     }
 
     // Get the available capacity for making calls before going any further
@@ -43,7 +51,9 @@ export const handler = async (
         safeThrottleLimit,
         reserveCapForDirect,
         retryCntForCapacity,
-      }, service, false,
+      },
+      service,
+      false,
     );
     console.log(`directFetch: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
 
@@ -71,8 +81,7 @@ export const handler = async (
 
     // Call the message processer to process the message which includes error
     // handling and publishing response to SNS
-    await processMessage(AWS, region, service, account, { msgBody, msgAttribs },
-      mHndlr);
+    await processMessage(AWS, region, service, account, { msgBody, msgAttribs }, mHndlr);
 
     return 'directFetch: INFO: Processing complete';
   } catch (e) {

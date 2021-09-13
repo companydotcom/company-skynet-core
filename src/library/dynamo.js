@@ -7,16 +7,15 @@ const batchWriteRecordsLimit = 25;
 const dynamoDbQuerySafeBatchLimit = 1000;
 
 /**
-   * Gets records for given query object.
-   * If there is no limit set on the number of records, it uses the built-in safety limit.
-   * All records returned are simple Javascript Objects with Key-Value pairs (doing away with
-   * DynamoDb style of defining values for properties along with data type - unmarshalling)
-   * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
-   * @param {Object} queryObject
-   * @returns {[{String: *}]}
-   */
-export const fetchRecordsByQuery = async (AWS, queryObject,
-  paginate = false) => {
+ * Gets records for given query object.
+ * If there is no limit set on the number of records, it uses the built-in safety limit.
+ * All records returned are simple Javascript Objects with Key-Value pairs (doing away with
+ * DynamoDb style of defining values for properties along with data type - unmarshalling)
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {Object} queryObject
+ * @returns {[{String: *}]}
+ */
+export const fetchRecordsByQuery = async (AWS, queryObject, paginate = false) => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Add safe fetch limit if one is not set
   if (!itemExists(queryObject, 'Limit')) {
@@ -30,16 +29,15 @@ export const fetchRecordsByQuery = async (AWS, queryObject,
         return { items: [], ExclusiveStartKey: undefined };
       }
       return {
-        items: qResult.Items.map(it => AWS.DynamoDB.Converter.unmarshall(it)),
-        ExclusiveStartKey: itemExists(qResult, 'LastEvaluatedKey')
-          ? qResult.LastEvaluatedKey : undefined,
+        items: qResult.Items.map((it) => AWS.DynamoDB.Converter.unmarshall(it)),
+        ExclusiveStartKey: itemExists(qResult, 'LastEvaluatedKey') ? qResult.LastEvaluatedKey : undefined,
       };
     }
     if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
       return [];
     }
     // Convert DynamoDb stlye objects to simple Javascript objects
-    return qResult.Items.map(item => AWS.DynamoDB.Converter.unmarshall(item));
+    return qResult.Items.map((item) => AWS.DynamoDB.Converter.unmarshall(item));
   } catch (err) {
     throw err;
   }
@@ -55,8 +53,7 @@ export const fetchRecordsByQuery = async (AWS, queryObject,
  * @returns {Boolean}
  */
 // eslint-disable-next-line arrow-body-style
-export const incrementColumn = async (AWS, tName, srchParams,
-  colName, incVal) => {
+export const incrementColumn = async (AWS, tName, srchParams, colName, incVal) => {
   const docClient = new AWS.DynamoDB.DocumentClient();
   const obj = {
     TableName: tName,
@@ -70,20 +67,18 @@ export const incrementColumn = async (AWS, tName, srchParams,
 };
 
 /**
-   * Inserts/ Upserts data into DynamoDb with given records to the given table
-   * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
-   * @param {Array} records
-   * @param {String} tName
-   * @returns {Boolean}
-   */
-export const batchPutIntoDynamoDb = async (AWS, recs, tName,
-  backoff = 1000) => {
+ * Inserts/ Upserts data into DynamoDb with given records to the given table
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {Array} records
+ * @param {String} tName
+ * @returns {Boolean}
+ */
+export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Convert all records to DynamoDb object structure and append the top level
   // object structure for each record insertion
-  const preparedRecords = recs.map(record => ({
-    PutRequest:
-      { Item: AWS.DynamoDB.Converter.marshall(record) },
+  const preparedRecords = recs.map((record) => ({
+    PutRequest: { Item: AWS.DynamoDB.Converter.marshall(record) },
   }));
 
   const bulkRequests = [];
@@ -92,36 +87,45 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName,
   // the top level object for insertion and send the split batches for batch
   // write into database all at the same time using Promise.all
   while (preparedRecords.length > 0) {
-    bulkRequests.push(dynamodb.batchWriteItem(
-      {
-        RequestItems: {
-          [tName]: preparedRecords.splice(0, batchWriteRecordsLimit),
-        },
-      },
-    ).promise());
+    bulkRequests.push(
+      dynamodb
+        .batchWriteItem({
+          RequestItems: {
+            [tName]: preparedRecords.splice(0, batchWriteRecordsLimit),
+          },
+        })
+        .promise(),
+    );
   }
 
-  console.log(`DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${bulkRequests.length} with each request having ${batchWriteRecordsLimit} records except the last one having ${recs.length - (batchWriteRecordsLimit * (bulkRequests.length - 1))} records`);
+  console.log(
+    `DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${
+      bulkRequests.length
+    } with each request having ${batchWriteRecordsLimit} records except the last one having ${
+      recs.length - batchWriteRecordsLimit * (bulkRequests.length - 1)
+    } records`,
+  );
 
   try {
     const result = await Promise.all(bulkRequests);
-    const unprocessedRecords = (result.map(resultDatum => {
-      if (itemExists(resultDatum, 'UnprocessedItems')
-        && itemExists(resultDatum.UnprocessedItems, tName)
-        && resultDatum.UnprocessedItems[tName].length > 0) {
-        // eslint-disable-next-line max-len
-        return resultDatum.UnprocessedItems[tName].map(
-          unprocessedRec => AWS.DynamoDB.Converter.unmarshall(
-            unprocessedRec.PutRequest.Item,
-          ),
-        );
-      }
-      return [];
-    })).reduce((output, currentArray) => output.concat(currentArray));
+    const unprocessedRecords = result
+      .map((resultDatum) => {
+        if (
+          itemExists(resultDatum, 'UnprocessedItems') &&
+          itemExists(resultDatum.UnprocessedItems, tName) &&
+          resultDatum.UnprocessedItems[tName].length > 0
+        ) {
+          // eslint-disable-next-line max-len
+          return resultDatum.UnprocessedItems[tName].map((unprocessedRec) =>
+            AWS.DynamoDB.Converter.unmarshall(unprocessedRec.PutRequest.Item),
+          );
+        }
+        return [];
+      })
+      .reduce((output, currentArray) => output.concat(currentArray));
     if (unprocessedRecords.length > 0) {
       await sleep(backoff);
-      return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName,
-        backoff + 1000);
+      return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName, backoff + 1000);
     }
     return true;
   } catch (err) {

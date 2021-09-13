@@ -20,14 +20,33 @@ import { handler as wH } from './handlers/webhook';
 export const fetchHandler = async (
   AWS,
   {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
+    retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, c, h) => {
+  },
+  r,
+  s,
+  a,
+  b,
+  c,
+  h,
+) => {
   return fH(
     AWS,
     {
-      throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, c, h,
+      throttleLmts,
+      safeThrottleLimit,
+      reserveCapForDirect,
+      retryCntForCapacity,
+    },
+    r,
+    s,
+    a,
+    b,
+    c,
+    h,
   );
 };
 
@@ -45,14 +64,33 @@ export const fetchHandler = async (
 export const bulkFetchHandler = async (
   AWS,
   {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
+    retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, c, h) => {
+  },
+  r,
+  s,
+  a,
+  b,
+  c,
+  h,
+) => {
   return bFH(
     AWS,
     {
-      throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, c, h,
+      throttleLmts,
+      safeThrottleLimit,
+      reserveCapForDirect,
+      retryCntForCapacity,
+    },
+    r,
+    s,
+    a,
+    b,
+    c,
+    h,
   );
 };
 
@@ -70,14 +108,33 @@ export const bulkFetchHandler = async (
 export const directTransitionHandler = async (
   AWS,
   {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
+    retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, c, h) => {
+  },
+  r,
+  s,
+  a,
+  b,
+  c,
+  h,
+) => {
   return dTH(
     AWS,
     {
-      throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, c, h,
+      throttleLmts,
+      safeThrottleLimit,
+      reserveCapForDirect,
+      retryCntForCapacity,
+    },
+    r,
+    s,
+    a,
+    b,
+    c,
+    h,
   );
 };
 
@@ -95,14 +152,33 @@ export const directTransitionHandler = async (
 export const bulkTransitionHandler = async (
   AWS,
   {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
+    retryCntForCapacity,
     // eslint-disable-next-line arrow-body-style
-  }, r, s, a, b, c, h) => {
+  },
+  r,
+  s,
+  a,
+  b,
+  c,
+  h,
+) => {
   return bTH(
     AWS,
     {
-      throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-    }, r, s, a, b, c, h,
+      throttleLmts,
+      safeThrottleLimit,
+      reserveCapForDirect,
+      retryCntForCapacity,
+    },
+    r,
+    s,
+    a,
+    b,
+    c,
+    h,
   );
 };
 
@@ -116,11 +192,7 @@ export const bulkTransitionHandler = async (
  * @param {function} c is the worker function that has the business logic to process the request
  * @param {function} h is the preworker hook
  */
-export const webhookHandler = async (
-  AWS, r, s, a, b, c, h) => wH(
-  AWS,
-  r, s, a, b, c, h,
-);
+export const webhookHandler = async (AWS, r, s, a, b, c, h) => wH(AWS, r, s, a, b, c, h);
 
 /**
  * This is the fetch request handler
@@ -152,6 +224,4 @@ export const setupDatabase = async (AWS, d, s) => {
  * @param {string} a account is AWS the account number
  * @param {object} b is the event input
  */
-export const httpReqHandler = async (AWS, r, s, a, b, c) => gpH(
-  AWS, r, s, a, b, c,
-);
+export const httpReqHandler = async (AWS, r, s, a, b, c) => gpH(AWS, r, s, a, b, c);
