@@ -1,5 +1,4 @@
 src
-.eslintrc.js
+.eslintrc
 package-lock.json
 webpack.config.js
-.prettierrc.js

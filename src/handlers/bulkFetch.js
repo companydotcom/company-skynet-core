@@ -1,6 +1,9 @@
 import { processMessage } from '../library/process';
 import { getErrorString } from '../library/util';
-import { getMsgsFromQueue, parseMsg as sqsParser } from '../library/queue';
+import {
+  getMsgsFromQueue,
+  parseMsg as sqsParser,
+} from '../library/queue';
 import {
   getAvailableCallsThisSec as getAvailableCapacity,
   incrementUsedCount as incCallCount,
@@ -22,20 +25,11 @@ import {
  */
 export const handler = async (
   AWS,
-  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
-  region,
-  service,
-  account,
-  event,
-  mHndlr,
-  preWorkerHook,
-) => {
+  {
+    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
+  }, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
-    console.log(
-      `bulkFetch: INFO: Scheduled call started. Event is ${
-        typeof event === 'object' ? JSON.stringify(event, null, 4) : event
-      }`,
-    );
+    console.log(`bulkFetch: INFO: Scheduled call started. Event is ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // Get the available capacity for making calls before going any further
     const availCap = await getAvailableCapacity(
@@ -55,15 +49,11 @@ export const handler = async (
     if (availCap < 1) {
       throw new Error('bulkFetch: ERROR: No capacity to make a call');
     }
-    const messagesToProcess = await getMsgsFromQueue(
-      AWS,
-      region,
-      availCap,
-      `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`,
-    );
+    const messagesToProcess = await getMsgsFromQueue(AWS, region, availCap,
+      `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`);
     console.log(`bulkFetch: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
 
-    let approvedMessages = messagesToProcess.map((m) => sqsParser(m));
+    let approvedMessages = messagesToProcess.map(m => sqsParser(m));
     if (preWorkerHook) {
       approvedMessages = await preWorkerHook('fetch', true, approvedMessages);
     }
@@ -79,8 +69,10 @@ export const handler = async (
     const proms = [];
 
     // Push each message call to a promise array
-    approvedMessages.forEach((message) => {
-      proms.push(processMessage(AWS, region, service, account, message, mHndlr));
+    approvedMessages.forEach(message => {
+      proms.push(processMessage(
+        AWS, region, service, account, message, mHndlr,
+      ));
     });
 
     // Await completion of all promises
