@@ -326,7 +326,7 @@ export const processMessage = async (
     accData.globalMicroAppData[`${service}`] = globalMads;
     internalAccountMads[`${service}`] = internalMads;
 
-    await batchPutIntoDynamoDb(AWS, [userData], 'Account');
+    await batchPutIntoDynamoDb(AWS, [accData], 'Account');
     await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'internal-account-mads');
   }
 
