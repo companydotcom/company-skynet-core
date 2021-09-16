@@ -1,6 +1,13 @@
 import { v4 as uuid } from 'uuid';
 
-import { neverThrowError, itemExists, evaluateSharedMicroApplicationData } from './util';
+import {
+  neverThrowError,
+  itemExists,
+  transformMadsToReadFormat,
+  evaluateMadsReadAccess,
+  findDuplicateMadsKeys,
+  filterMadsByReadAccess,
+} from './util';
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from './dynamo';
 import es from './eventStream';
 import { deleteMsg as deleteMsgFromQueue, sendMsg as sendSqsMsg } from './queue';
@@ -30,6 +37,30 @@ const getCurrentAccountData = async (AWS, accountId) => {
 const getCurrentUserData = async (AWS, userId) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
+    ExpressionAttributeValues: {
+      ':uId': { S: userId },
+    },
+  });
+  return fetchResponse[0];
+};
+
+const getInternalAccountMads = async (AWS, accountId) => {
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'internal-account-mads',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
+    ExpressionAttributeValues: {
+      ':accId': { S: accountId },
+    },
+  });
+  return fetchResponse[0];
+};
+
+const getInternalUserMads = async (AWS, userId) => {
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'internal-user-mads',
     ExpressionAttributeNames: { '#pk': 'userId' },
     KeyConditionExpression: '#pk = :uId',
     ExpressionAttributeValues: {
@@ -70,68 +101,64 @@ export const processMessage = async (
     },
   });
 
-  // eslint-disable-next-line no-undef-init
+  // * all account and user fetch requests
+  const [accData, userData, internalAccountMads, internalUserMads] = await Promise.all([
+    getCurrentAccountData(AWS, msgBody.context.user.accountId),
+    getCurrentUserData(AWS, msgBody.context.user.userId),
+    getInternalAccountMads(AWS, msgBody.context.user.accountId),
+    getInternalUserMads(AWS, msgBody.context.user.userId),
+  ]);
+
   let serviceAccountData = {};
-  if (
-    itemExists(msgBody, 'context') &&
-    itemExists(msgBody.context, 'user') &&
-    itemExists(msgBody.context.user, 'accountId')
-  ) {
-    const accData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
+  if (itemExists(msgBody, 'context')) {
     if (itemExists(accData, 'vendorData') && itemExists(accData.vendorData, `${service}`)) {
       serviceAccountData = accData.vendorData[`${service}`];
     }
-    if (!itemExists(msgBody.context, account)) {
+    if (!itemExists(msgBody.context, 'account')) {
       msgBody.context.account = accData;
     }
   }
 
-  // eslint-disable-next-line
-  let sharedMicroApplicationAccountData = {};
-  if (
-    itemExists(msgBody, 'context') &&
-    itemExists(msgBody.context, 'user') &&
-    itemExists(msgBody.context.user, 'accountId')
-  ) {
-    const accData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
-    if (itemExists(accData, 'sharedMicroApplicationAccountData')) {
-      sharedMicroApplicationAccountData = evaluateSharedMicroApplicationData(
-        accData.sharedMicroApplicationAccountData,
-        service,
-      );
-    }
-    if (!itemExists(msgBody.context, account)) {
-      // eslint-disable-next-line
-      msgBody.context.account = accData;
-    }
-  }
-
-  // eslint-disable-next-line no-undef-init
   let serviceUserData = {};
-  if (
-    itemExists(msgBody, 'context') &&
-    itemExists(msgBody.context, 'user') &&
-    itemExists(msgBody.context.user, 'userId')
-  ) {
-    const userData = await getCurrentUserData(AWS, msgBody.context.user.userId);
+  if (itemExists(msgBody, 'context')) {
     if (itemExists(userData, 'vendorData') && itemExists(userData.vendorData, `${service}`)) {
       serviceUserData = userData.vendorData[`${service}`];
     }
   }
 
-  // eslint-disable-next-line
-  let sharedMicroApplicationUserData = {};
-  if (
-    itemExists(msgBody, 'context') &&
-    itemExists(msgBody.context, 'user') &&
-    itemExists(msgBody.context.user, 'userId')
-  ) {
-    const userData = await getCurrentUserData(AWS, msgBody.context.user.userId);
-    if (itemExists(userData, 'sharedMicroApplicationUserData')) {
-      sharedMicroApplicationUserData = evaluateSharedMicroApplicationData(
-        userData.sharedMicroApplicationUserData,
-        service,
+  let globalMicroAppData = {};
+  let internalMicroAppData = {};
+
+  // * Map internal, and global MADS to the Micro Application worker arguments
+  if (itemExists(msgBody, 'context')) {
+    // * If for some reason account is not passed in the context,
+    // * hydrate it, on the context, here
+    if (!itemExists(msgBody.context, 'account')) {
+      msgBody.context.account = accData;
+    }
+
+    // * Evaluate and transform global Account MADS
+    if (itemExists(accData, 'globalMicroAppData')) {
+      globalMicroAppData.account = transformMadsToReadFormat(
+        evaluateMadsReadAccess(accData.globalMicroAppData, service),
       );
+    }
+
+    // * Evaluate and transform global User MADS
+    if (itemExists(userData, 'globalMicroAppData')) {
+      globalMicroAppData.user = transformMadsToReadFormat(evaluateMadsReadAccess(accData.globalMicroAppData, service));
+    }
+
+    // * No need to evaluate internal MADS because they are
+    // * only for the internal Micro Application
+    // * Transform internal User MADS
+    if (itemExists(internalUserMads, `${service}`)) {
+      internalMicroAppData.user = transformMadsToReadFormat(internalUserMads[`${service}`]);
+    }
+
+    // * Transform internal Account MADS
+    if (itemExists(internalAccountMads, `${service}`)) {
+      internalMicroAppData.account = transformMadsToReadFormat(internalAccountMads[`${service}`]);
     }
   }
 
@@ -146,9 +173,9 @@ export const processMessage = async (
           ? dbConfig[0].configdata
           : [],
       serviceAccountData,
-      sharedMicroApplicationAccountData,
       serviceUserData,
-      sharedMicroApplicationUserData,
+      globalMicroAppData,
+      internalMicroAppData,
       attributes: msgAttribs,
     },
     msgHandler,
@@ -159,102 +186,131 @@ export const processMessage = async (
     if (typeof procRes.workerResp.serviceAccountData !== 'object') {
       throw new Error('Service specific user account data should be an object');
     }
-    if (
-      itemExists(msgBody, 'context') &&
-      itemExists(msgBody.context, 'user') &&
-      itemExists(msgBody.context.user, 'accountId')
-    ) {
-      const currAccData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
-      if (!itemExists(currAccData, 'vendorData')) {
-        currAccData.vendorData = {};
-      }
-      if (!itemExists(currAccData.vendorData, `${service}`)) {
-        currAccData.vendorData[`${service}`] = {};
-      }
-      currAccData.vendorData[`${service}`] = {
-        ...currAccData.vendorData[`${service}`],
-        ...procRes.workerResp.serviceAccountData,
-      };
-      await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
+    console.log('Deprecation warning: serviceAccountData is being deprecated soon, please use microAppData instead.');
+    console.log('See docs for more info: https://bit.ly/3kdY2w9');
+    if (!itemExists(accData, 'vendorData')) {
+      accData.vendorData = {};
     }
-  }
-
-  if (itemExists(procRes.workerResp, 'sharedMicroApplicationAccountData')) {
-    if (typeof procRes.workerResp.sharedMicroApplicationAccountData !== 'object') {
-      throw new Error('Shared service account data should be an object');
+    if (!itemExists(accData.vendorData, `${service}`)) {
+      accData.vendorData[`${service}`] = {};
     }
-    if (
-      itemExists(msgBody, 'context') &&
-      itemExists(msgBody.context, 'user') &&
-      itemExists(msgBody.context.user, 'accountId')
-    ) {
-      const currAccData = await getCurrentAccountData(AWS, msgBody.context.user.accountId);
-      if (!itemExists(currAccData, 'sharedMicroApplicationAccountData')) {
-        currAccData.sharedMicroApplicationAccountData = {};
-      }
-      if (!itemExists(currAccData.sharedMicroApplicationAccountData, `${service}`)) {
-        currAccData.sharedMicroApplicationAccountData[`${service}`] = {
-          microApplicationsToShareWith: [],
-          serviceData: {},
-        };
-      }
-      currAccData.sharedMicroApplicationAccountData[`${service}`] = {
-        ...currAccData.sharedMicroApplicationAccountData[`${service}`],
-        ...procRes.workerResp.sharedMicroApplicationAccountData,
-      };
-      await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
-    }
+    accData.vendorData[`${service}`] = {
+      ...accData.vendorData[`${service}`],
+      ...procRes.workerResp.serviceAccountData,
+    };
+    await batchPutIntoDynamoDb(AWS, [accData], 'Account');
   }
 
   if (itemExists(procRes.workerResp, 'serviceUserData')) {
     if (typeof procRes.workerResp.serviceUserData !== 'object') {
       throw new Error('Service specific user data should be an object');
     }
-    if (
-      itemExists(msgBody, 'context') &&
-      itemExists(msgBody.context, 'user') &&
-      itemExists(msgBody.context.user, 'userId')
-    ) {
-      const currUserData = await getCurrentUserData(AWS, msgBody.context.user.userId);
-      if (!itemExists(currUserData, 'vendorData')) {
-        currUserData.vendorData = {};
-      }
-      if (!itemExists(currUserData.vendorData, `${service}`)) {
-        currUserData.vendorData[`${service}`] = {};
-      }
-      currUserData.vendorData[`${service}`] = {
-        ...currUserData.vendorData[`${service}`],
-        ...procRes.workerResp.serviceUserData,
-      };
-      await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
+    console.log('Deprecation warning: serviceUserData is being deprecated soon, please use microAppData instead.');
+    console.log('See docs for more info: https://bit.ly/3kdY2w9');
+    if (!itemExists(userData, 'vendorData')) {
+      userData.vendorData = {};
     }
+    if (!itemExists(userData.vendorData, `${service}`)) {
+      userData.vendorData[`${service}`] = {};
+    }
+    userData.vendorData[`${service}`] = {
+      ...userData.vendorData[`${service}`],
+      ...procRes.workerResp.serviceUserData,
+    };
+    await batchPutIntoDynamoDb(AWS, [userData], 'User');
   }
 
-  if (itemExists(procRes.workerResp, 'sharedMicroApplicationUserData')) {
-    if (typeof procRes.workerResp.sharedMicroApplicationUserData !== 'object') {
-      throw new Error('Shared service user data should be an object');
+  // * Set defaults if any internal or global MADS do not exist
+  if (!itemExists(userData, 'globalMicroAppData')) {
+    userData.globalMicroAppData = {};
+  }
+
+  if (!itemExists(accData, 'globalMicroAppData')) {
+    accData.globalMicroAppData = {};
+  }
+
+  if (!itemExists(userData.globalMicroAppData, `${service}`)) {
+    userData.globalMicroAppData[`${service}`] = [];
+  }
+
+  if (!itemExists(accData.globalMicroAppData, `${service}`)) {
+    accData.globalMicroAppData[`${service}`] = [];
+  }
+
+  if (!itemExists(internalUserMads, `${service}`)) {
+    internalUserMads[`${service}`] = [];
+  }
+
+  if (!itemExists(internalAccountMads, `${service}`)) {
+    internalAccountMads[`${service}`] = [];
+  }
+
+  // * Validate any changes to the global and internal
+  // * user MADS from the process worker response, then overwrite any changes
+  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData.user)) {
+    const { user: userMads } = procRes.workerResp.microAppData;
+
+    // * Validation
+    if (!Array.isArray(userMads)) {
+      throw new Error('Worker response in user microAppData must be of type Array.');
     }
-    if (
-      itemExists(msgBody, 'context') &&
-      itemExists(msgBody.context, 'user') &&
-      itemExists(msgBody.context.user, 'userId')
-    ) {
-      const currUserData = await getCurrentUserData(AWS, msgBody.context.user.userId);
-      if (!itemExists(currUserData, 'sharedMicroApplicationUserData')) {
-        currUserData.sharedMicroApplicationUserData = {};
+
+    userMads.forEach((item) => {
+      if (!itemExists(item, 'key') || !itemExists(item, 'value') || !itemExists(item, 'readAccess')) {
+        throw new Error('Missing a required key (key, value, or readAccess) in a user microAppData item.');
       }
-      if (!itemExists(currUserData.sharedMicroApplicationUserData, `${service}`)) {
-        currUserData.sharedMicroApplicationUserData[`${service}`] = {
-          microApplicationsToShareWith: [],
-          serviceData: {},
-        };
-      }
-      currUserData.sharedMicroApplicationUserData[`${service}`] = {
-        ...currUserData.sharedMicroApplicationUserData[`${service}`],
-        ...procRes.workerResp.sharedMicroApplicationUserData,
-      };
-      await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
+    });
+
+    const duplicateKey = findDuplicateMadsKeys(userMads);
+
+    if (duplicateKey) {
+      throw new Error(
+        `Key: ${duplicateKey} in user microAppData array is not unique. All keys in the microAppData arrays must be unique.`,
+      );
     }
+
+    // * Overwrite current MADS with the process worker response MADS
+    const [internalMads, globalMads] = filterMadsByReadAccess(userMads);
+
+    userData.globalMicroAppData[`${service}`] = globalMads;
+    internalUserMads[`${service}`] = internalMads;
+
+    await batchPutIntoDynamoDb(AWS, [userData], 'User');
+    await batchPutIntoDynamoDb(AWS, [internalUserMads], 'internal-user-mads');
+  }
+
+  // * Validate any changes to the global and internal
+  // * account MADS from the process worker response, then overwrite any changes
+  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData.account)) {
+    const { account: accountMads } = procRes.workerResp.microAppData;
+
+    // * Validation
+    if (!Array.isArray(accountMads)) {
+      throw new Error('Worker response in account microAppData must be of type Array.');
+    }
+
+    accountMads.forEach((item) => {
+      if (!itemExists(item, 'key') || !itemExists(item, 'value') || !itemExists(item, 'readAccess')) {
+        throw new Error('Missing a required key (key, value, or readAccess) in a account microAppData item.');
+      }
+    });
+
+    const duplicateKey = findDuplicateMadsKeys(accountMads);
+
+    if (duplicateKey) {
+      throw new Error(
+        `Key: ${duplicateKey} in account microAppData array is not unique. All keys in the microAppData arrays must be unique.`,
+      );
+    }
+
+    // * Overwrite current MADS with the process worker response MADS
+    const [internalMads, globalMads] = filterMadsByReadAccess(accountMads);
+
+    accData.globalMicroAppData[`${service}`] = globalMads;
+    internalAccountMads[`${service}`] = internalMads;
+
+    await batchPutIntoDynamoDb(AWS, [userData], 'Account');
+    await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'internal-account-mads');
   }
 
   if (itemExists(procRes.workerResp, 'crmData')) {

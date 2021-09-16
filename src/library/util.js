@@ -1,3 +1,6 @@
+import { globalAgent } from 'http';
+import { camelCase } from 'lodash';
+
 /**
  * @description Attempt to JSON.parse input value. If parse fails, return original value.
  * @param {any} v
@@ -148,27 +151,89 @@ export const itemExists = (obj, param) =>
   typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(obj, param) : false;
 
 /**
- * Checks to see if there is a sharedMicroApplication data store available for the Account or User objects
- * @param {*} sharedMicroApplicationData the object as is, from the Account or User entities
- * -- value each individual microApplication data store
- * @param {*} service the service name (serverless name) of the current processing service
- * @returns the destructured sharedMicroApplicationData
- * @abstract the "microApplicationsToShareWith" array is a required in order to share this data set with other Micro Applications.
- * If this field is omitted this function assumes the value is meant to be private.
- * If the array does exist and there is a "*" in the array, then the value should be shared with all other micro applications
+ * Filters the globalMicroAppData object based on if the service
+ * is included in the readAccess array of item or not.
+ * @param {Object: raw MADS} globalMicroAppData the object as is from the Account, or User tables
+ * @param {String} service the service name (serverless name) of the current processing service
+ * @returns a globalMicroAppData object filtered to just the data points that current service has access to
+ * @abstract docs: https://bit.ly/3kdY2w9
  */
-export const evaluateSharedMicroApplicationData = (sharedMicroApplicationData, service) => {
-  const readableSharedMicroApplicationData = {};
+export const evaluateMadsReadAccess = (globalMicroAppData, service) => {
+  let result = {};
 
-  // eslint-disable-next-line
-  for (const [key, value] of Object.entries(sharedMicroApplicationData)) {
-    if (
-      (value.microApplicationsToShareWith.length && value.microApplicationsToShareWith.includes(service)) ||
-      value.microApplicationsToShareWith.includes('*')
-    ) {
-      readableSharedMicroApplicationData[key] = service === key ? value : value.serviceData;
+  // * key = mads service name (ex. 'gmb-svc')
+  // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
+  Object.entries(globalMicroAppData).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      const eachMadsFiltered = value.filter(
+        (dataPoint) => dataPoint.readAccess.includes(service) || dataPoint.readAccess.includes('*'),
+      );
+
+      if (eachMadsFiltered.length) {
+        result[key] = eachMadsFiltered;
+      }
     }
-  }
+  });
 
-  return readableSharedMicroApplicationData;
+  return result;
+};
+
+/**
+ * Transforms a raw MADS object to readable object, without array data points, or readAccess arrays.
+ * @param {Object: raw MADS} mads the object as is from the Account, User, internal-user-mads or internal-account-mads tables
+ * @returns a readable MADS object.
+ * @abstract docs: https://bit.ly/3kdY2w9
+ */
+export const transformMadsToReadFormat = (mads) => {
+  let result = {};
+
+  // * key = mads service name (ex. 'gmb-svc')
+  // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
+  Object.entries(mads).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      const eachMadsReduced = value.reduce((acc, cur) => {
+        acc[cur.key] = cur.value;
+        return acc;
+      }, {});
+
+      result[key] = eachMadsReduced;
+    }
+  });
+
+  return result;
+};
+
+/**
+ * Finds duplicate MADS keys if any
+ * @param {Object: worker response MADS} mads from the process worker response
+ * @returns {string || null} Returns first duplicate key in MADS array, or null if no duplicates
+ */
+export const findDuplicateMadsKeys = (mads) => {
+  let duplicateKey;
+
+  const keyCount = mads.reduce((acc, cur) => {
+    acc[cur.key] = acc[cur.key] >= 0 ? acc[cur.key] + 1 : 0;
+    return acc;
+  }, {});
+
+  Object.entries(keyCount).forEach(([key, value]) => {
+    if (value > 0) {
+      duplicateKey = key;
+    }
+  });
+
+  return duplicateKey || null;
+};
+
+/**
+ * Filters MADS array from the process worker response into two new array
+ * global and internal
+ * @param {Object: worker response MADS} mads from the process worker response
+ * @returns {Array: [internalMads, globalMads]}
+ */
+export const filterMadsByReadAccess = (mads) => {
+  const internalMads = mads.filter((item) => item.readAccess.length === 0);
+  const globalMads = mads.filter((item) => item.readAccess.length > 0);
+
+  return [internalMads, globalMads];
 };
