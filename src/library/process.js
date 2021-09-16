@@ -101,13 +101,30 @@ export const processMessage = async (
     },
   });
 
-  // * all account and user fetch requests
-  const [accData, userData, internalAccountMads, internalUserMads] = await Promise.all([
-    getCurrentAccountData(AWS, msgBody.context.user.accountId),
-    getCurrentUserData(AWS, msgBody.context.user.userId),
-    getInternalAccountMads(AWS, msgBody.context.user.accountId),
-    getInternalUserMads(AWS, msgBody.context.user.userId),
-  ]);
+  let accData;
+  let userData;
+  let internalAccountMads;
+  let internalUserMads;
+
+  if (
+    itemExists(msgBody, 'context') &&
+    itemExists(msgBody.context, 'user') &&
+    itemExists(msgBody.context.user, 'userId') &&
+    itemExists(msgBody.context.user, 'accountId')
+  ) {
+    // * all account and user fetch requests
+    const [accDataRes, userDataRes, internalAccountMadsRes, internalUserMadsRes] = await Promise.all([
+      getCurrentAccountData(AWS, msgBody.context.user.accountId),
+      getCurrentUserData(AWS, msgBody.context.user.userId),
+      getInternalAccountMads(AWS, msgBody.context.user.accountId),
+      getInternalUserMads(AWS, msgBody.context.user.userId),
+    ]);
+
+    accData = accDataRes;
+    userData = userDataRes;
+    internalAccountMads = internalAccountMadsRes;
+    internalUserMads = internalUserMadsRes;
+  }
 
   let serviceAccountData = {};
   if (itemExists(msgBody, 'context')) {
