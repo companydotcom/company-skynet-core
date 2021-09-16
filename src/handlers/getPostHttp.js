@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import uuid from 'uuid/v4';
 import es from '../library/eventStream';
 import { getErrorString } from '../library/util';
 
@@ -14,7 +14,8 @@ import { getErrorString } from '../library/util';
  * @returns {string}
  * @throws {Error}
  */
-export const handler = async (AWS, region, service, account, entityId, event) => {
+export const handler = async (
+  AWS, region, service, account, entityId, event) => {
   try {
     console.log(`getpostHttp: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 

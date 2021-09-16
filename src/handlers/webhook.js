@@ -16,20 +16,15 @@ import { parseMsg as sqsParser } from '../library/queue';
  * @returns {string}
  * @throws {Error}
  */
-export const handler = async (AWS, region, service, account, event, mHndlr, preWorkerHook) => {
+export const handler = async (
+  AWS, region, service, account, event, mHndlr, preWorkerHook) => {
   try {
-    console.log(
-      `directTransition: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`,
-    );
+    console.log(`directTransition: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 
     // If there are no records to process or more than one record to process,
     // throw an error as it is an invalid event
     if (typeof event.Records === 'undefined' || event.Records.length !== 1) {
-      throw new Error(
-        `directTransition: ERROR: Lambda was wrongly triggered with ${
-          typeof event.Records === 'undefined' ? 0 : event.Records.length
-        } records`,
-      );
+      throw new Error(`directTransition: ERROR: Lambda was wrongly triggered with ${typeof event.Records === 'undefined' ? 0 : event.Records.length} records`);
     }
 
     console.log(`webhook: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
@@ -48,7 +43,8 @@ export const handler = async (AWS, region, service, account, event, mHndlr, preW
 
     // Call the message processor to process the message which includes error
     // handling and publishing response to SNS
-    await processMessage(AWS, region, service, account, { msgBody, msgAttribs }, mHndlr);
+    await processMessage(AWS, region, service, account, { msgBody, msgAttribs },
+      mHndlr);
 
     return 'directTransition: INFO: Processing complete';
   } catch (e) {
