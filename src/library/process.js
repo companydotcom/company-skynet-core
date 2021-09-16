@@ -97,7 +97,7 @@ export const processMessage = async (
     ExpressionAttributeNames: { '#pk': 'service' },
     KeyConditionExpression: '#pk = :serv',
     ExpressionAttributeValues: {
-      ':serv': { S: `${service}` },
+      ':serv': { S: service },
     },
   });
 
@@ -128,8 +128,8 @@ export const processMessage = async (
 
   let serviceAccountData = {};
   if (itemExists(msgBody, 'context')) {
-    if (itemExists(accData, 'vendorData') && itemExists(accData.vendorData, `${service}`)) {
-      serviceAccountData = accData.vendorData[`${service}`];
+    if (itemExists(accData, 'vendorData') && itemExists(accData.vendorData, service)) {
+      serviceAccountData = accData.vendorData[service];
     }
     if (!itemExists(msgBody.context, 'account')) {
       msgBody.context.account = accData;
@@ -138,8 +138,8 @@ export const processMessage = async (
 
   let serviceUserData = {};
   if (itemExists(msgBody, 'context')) {
-    if (itemExists(userData, 'vendorData') && itemExists(userData.vendorData, `${service}`)) {
-      serviceUserData = userData.vendorData[`${service}`];
+    if (itemExists(userData, 'vendorData') && itemExists(userData.vendorData, service)) {
+      serviceUserData = userData.vendorData[service];
     }
   }
 
@@ -163,19 +163,19 @@ export const processMessage = async (
 
     // * Evaluate and transform global User MADS
     if (itemExists(userData, 'globalMicroAppData')) {
-      globalMicroAppData.user = transformMadsToReadFormat(evaluateMadsReadAccess(accData.globalMicroAppData, service));
+      globalMicroAppData.user = transformMadsToReadFormat(evaluateMadsReadAccess(userData.globalMicroAppData, service));
     }
 
     // * No need to evaluate internal MADS because they are
     // * only for the internal Micro Application
     // * Transform internal User MADS
-    if (itemExists(internalUserMads, `${service}`)) {
-      internalMicroAppData.user = transformMadsToReadFormat(internalUserMads[`${service}`]);
+    if (itemExists(internalUserMads, service)) {
+      internalMicroAppData.user = transformMadsToReadFormat(internalUserMads[service]);
     }
 
     // * Transform internal Account MADS
-    if (itemExists(internalAccountMads, `${service}`)) {
-      internalMicroAppData.account = transformMadsToReadFormat(internalAccountMads[`${service}`]);
+    if (itemExists(internalAccountMads, service)) {
+      internalMicroAppData.account = transformMadsToReadFormat(internalAccountMads[service]);
     }
   }
 
@@ -208,11 +208,11 @@ export const processMessage = async (
     if (!itemExists(accData, 'vendorData')) {
       accData.vendorData = {};
     }
-    if (!itemExists(accData.vendorData, `${service}`)) {
-      accData.vendorData[`${service}`] = {};
+    if (!itemExists(accData.vendorData, service)) {
+      accData.vendorData[service] = {};
     }
-    accData.vendorData[`${service}`] = {
-      ...accData.vendorData[`${service}`],
+    accData.vendorData[service] = {
+      ...accData.vendorData[service],
       ...procRes.workerResp.serviceAccountData,
     };
     await batchPutIntoDynamoDb(AWS, [accData], 'Account');
@@ -227,17 +227,19 @@ export const processMessage = async (
     if (!itemExists(userData, 'vendorData')) {
       userData.vendorData = {};
     }
-    if (!itemExists(userData.vendorData, `${service}`)) {
-      userData.vendorData[`${service}`] = {};
+    if (!itemExists(userData.vendorData, service)) {
+      userData.vendorData[service] = {};
     }
-    userData.vendorData[`${service}`] = {
-      ...userData.vendorData[`${service}`],
+    userData.vendorData[service] = {
+      ...userData.vendorData[service],
       ...procRes.workerResp.serviceUserData,
     };
     await batchPutIntoDynamoDb(AWS, [userData], 'User');
   }
 
   // * Set defaults if any internal or global MADS do not exist
+  internalAccountMads = {};
+  internalUserMads = {};
   if (!itemExists(userData, 'globalMicroAppData')) {
     userData.globalMicroAppData = {};
   }
@@ -246,20 +248,20 @@ export const processMessage = async (
     accData.globalMicroAppData = {};
   }
 
-  if (!itemExists(userData.globalMicroAppData, `${service}`)) {
-    userData.globalMicroAppData[`${service}`] = [];
+  if (!itemExists(userData.globalMicroAppData, service)) {
+    userData.globalMicroAppData[service] = [];
   }
 
-  if (!itemExists(accData.globalMicroAppData, `${service}`)) {
-    accData.globalMicroAppData[`${service}`] = [];
+  if (!itemExists(accData.globalMicroAppData, service)) {
+    accData.globalMicroAppData[service] = [];
   }
 
-  if (!itemExists(internalUserMads, `${service}`)) {
-    internalUserMads[`${service}`] = [];
+  if (!itemExists(internalUserMads, service)) {
+    internalUserMads[service] = [];
   }
 
-  if (!itemExists(internalAccountMads, `${service}`)) {
-    internalAccountMads[`${service}`] = [];
+  if (!itemExists(internalAccountMads, service)) {
+    internalAccountMads[service] = [];
   }
 
   // * Validate any changes to the global and internal
@@ -289,8 +291,8 @@ export const processMessage = async (
     // * Overwrite current MADS with the process worker response MADS
     const [internalMads, globalMads] = filterMadsByReadAccess(userMads);
 
-    userData.globalMicroAppData[`${service}`] = globalMads;
-    internalUserMads[`${service}`] = internalMads;
+    userData.globalMicroAppData[service] = globalMads;
+    internalUserMads[service] = internalMads;
 
     await batchPutIntoDynamoDb(AWS, [userData], 'User');
     await batchPutIntoDynamoDb(AWS, [internalUserMads], 'internal-user-mads');
@@ -323,8 +325,8 @@ export const processMessage = async (
     // * Overwrite current MADS with the process worker response MADS
     const [internalMads, globalMads] = filterMadsByReadAccess(accountMads);
 
-    accData.globalMicroAppData[`${service}`] = globalMads;
-    internalAccountMads[`${service}`] = internalMads;
+    accData.globalMicroAppData[service] = globalMads;
+    internalAccountMads[service] = internalMads;
 
     await batchPutIntoDynamoDb(AWS, [accData], 'Account');
     await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'internal-account-mads');
