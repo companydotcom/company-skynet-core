@@ -15,9 +15,9 @@ export const getCallsMade = async (AWS, serviceName) => {
   // Get the next minute at its second 0
   const currMin = currSec - (currSec % 60) + 60;
   // Get the next hour at its 0th minute and 0th second
-  const currHr = currMin - (currMin % (60 * 60)) + (60 * 60);
+  const currHr = currMin - (currMin % (60 * 60)) + 60 * 60;
   // Get the next day at 00:00:00
-  const currDay = currHr - (currHr % (24 * 60 * 60)) + (24 * 60 * 60);
+  const currDay = currHr - (currHr % (24 * 60 * 60)) + 24 * 60 * 60;
 
   // Construct the common properties for the next queries
   const queryObj = {
@@ -29,46 +29,34 @@ export const getCallsMade = async (AWS, serviceName) => {
   // Generate a list of promises to get the records for current second, minute,
   // hour and day
   const proms = [
-    fetchRecordsByQuery(
-      AWS,
-      {
-        ...queryObj,
-        ExpressionAttributeValues: {
-          ':sd': { S: `${serviceName}-second` },
-          ':et': { N: currSec.toString() },
-        },
+    fetchRecordsByQuery(AWS, {
+      ...queryObj,
+      ExpressionAttributeValues: {
+        ':sd': { S: `${serviceName}-second` },
+        ':et': { N: currSec.toString() },
       },
-    ),
-    fetchRecordsByQuery(
-      AWS,
-      {
-        ...queryObj,
-        ExpressionAttributeValues: {
-          ':sd': { S: `${serviceName}-minute` },
-          ':et': { N: currMin.toString() },
-        },
+    }),
+    fetchRecordsByQuery(AWS, {
+      ...queryObj,
+      ExpressionAttributeValues: {
+        ':sd': { S: `${serviceName}-minute` },
+        ':et': { N: currMin.toString() },
       },
-    ),
-    fetchRecordsByQuery(
-      AWS,
-      {
-        ...queryObj,
-        ExpressionAttributeValues: {
-          ':sd': { S: `${serviceName}-hour` },
-          ':et': { N: currHr.toString() },
-        },
+    }),
+    fetchRecordsByQuery(AWS, {
+      ...queryObj,
+      ExpressionAttributeValues: {
+        ':sd': { S: `${serviceName}-hour` },
+        ':et': { N: currHr.toString() },
       },
-    ),
-    fetchRecordsByQuery(
-      AWS,
-      {
-        ...queryObj,
-        ExpressionAttributeValues: {
-          ':sd': { S: `${serviceName}-day` },
-          ':et': { N: currDay.toString() },
-        },
+    }),
+    fetchRecordsByQuery(AWS, {
+      ...queryObj,
+      ExpressionAttributeValues: {
+        ':sd': { S: `${serviceName}-day` },
+        ':et': { N: currDay.toString() },
       },
-    ),
+    }),
   ];
 
   // Wait for the promises to complete
@@ -80,7 +68,6 @@ export const getCallsMade = async (AWS, serviceName) => {
     minute: promRes[1].callCount ? promRes[1].callCount : 0,
     hour: promRes[2].callCount ? promRes[2].callCount : 0,
     day: promRes[3].callCount ? promRes[3].callCount : 0,
-
   };
 };
 
@@ -94,10 +81,11 @@ export const getCallsMade = async (AWS, serviceName) => {
  */
 export const getAvailableCallsThisSec = async (
   AWS,
-  {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  },
-  serviceName, bulk = true, iter = 0) => {
+  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
+  serviceName,
+  bulk = true,
+  iter = 0,
+) => {
   if (iter > retryCntForCapacity) {
     return 0;
   }
@@ -106,54 +94,61 @@ export const getAvailableCallsThisSec = async (
     await sleep(1000);
   }
   const throtLmts = JSON.parse(throttleLmts);
-  if (typeof throtLmts.day === 'undefined'
-    && typeof throtLmts.hour === 'undefined'
-    && typeof throtLmts.minute === 'undefined'
-    && typeof throtLmts.second === 'undefined') {
+  if (
+    typeof throtLmts.day === 'undefined' &&
+    typeof throtLmts.hour === 'undefined' &&
+    typeof throtLmts.minute === 'undefined' &&
+    typeof throtLmts.second === 'undefined'
+  ) {
     return 1000000;
   }
 
-  const resFact = bulk === true
-    ? (1 - reserveCapForDirect) * safeThrottleLimit
-    : 1 * safeThrottleLimit;
+  const resFact = bulk === true ? (1 - reserveCapForDirect) * safeThrottleLimit : 1 * safeThrottleLimit;
   const callsMade = await getCallsMade(AWS, serviceName);
   let availLmt = 'x';
-  if (typeof throtLmts.day !== 'undefined'
-    && (Math.floor((throtLmts.day * resFact) - callsMade.day) < availLmt
-      || availLmt === 'x')) {
+  if (
+    typeof throtLmts.day !== 'undefined' &&
+    (Math.floor(throtLmts.day * resFact - callsMade.day) < availLmt || availLmt === 'x')
+  ) {
     availLmt = Math.floor((throtLmts.day - callsMade.day) * resFact);
   }
 
-  if (typeof throtLmts.hour !== 'undefined'
-    && (Math.floor((throtLmts.hour * resFact) - callsMade.hour) < availLmt
-      || availLmt === 'x')) {
+  if (
+    typeof throtLmts.hour !== 'undefined' &&
+    (Math.floor(throtLmts.hour * resFact - callsMade.hour) < availLmt || availLmt === 'x')
+  ) {
     availLmt = Math.floor((throtLmts.hour - callsMade.hour) * resFact);
   }
 
-  if (typeof throtLmts.minute !== 'undefined'
-    && (Math.floor((throtLmts.minute * resFact) - callsMade.minute) < availLmt
-      || availLmt === 'x')) {
+  if (
+    typeof throtLmts.minute !== 'undefined' &&
+    (Math.floor(throtLmts.minute * resFact - callsMade.minute) < availLmt || availLmt === 'x')
+  ) {
     availLmt = Math.floor((throtLmts.minute - callsMade.minute) * resFact);
   }
 
-  if (typeof throtLmts.second !== 'undefined'
-    && (Math.floor((throtLmts.second * resFact) - callsMade.second) < availLmt
-      || availLmt === 'x')) {
+  if (
+    typeof throtLmts.second !== 'undefined' &&
+    (Math.floor(throtLmts.second * resFact - callsMade.second) < availLmt || availLmt === 'x')
+  ) {
     availLmt = Math.floor((throtLmts.second - callsMade.second) * resFact);
   }
 
   return availLmt > 0
-    ? availLmt : getAvailableCallsThisSec(
-      AWS,
-      {
-        throttleLmts,
-        safeThrottleLimit,
-        reserveCapForDirect,
-        retryCntForCapacity,
-      }, serviceName, bulk, iter + 1,
-    );
+    ? availLmt
+    : getAvailableCallsThisSec(
+        AWS,
+        {
+          throttleLmts,
+          safeThrottleLimit,
+          reserveCapForDirect,
+          retryCntForCapacity,
+        },
+        serviceName,
+        bulk,
+        iter + 1,
+      );
 };
-
 
 /**
  * Increments the per second, minute, hour and day calls made count to the
@@ -167,8 +162,8 @@ export const incrementUsedCount = async (AWS, serviceName, incVal = 1) => {
   const currMs = Date.now();
   const currSec = Math.floor(currMs / 1000) + 1;
   const currMin = currSec - (currSec % 60) + 60;
-  const currHr = currMin - (currMin % (60 * 60)) + (60 * 60);
-  const currDay = currHr - (currHr % (24 * 60 * 60)) + (24 * 60 * 60);
+  const currHr = currMin - (currMin % (60 * 60)) + 60 * 60;
+  const currDay = currHr - (currHr % (24 * 60 * 60)) + 24 * 60 * 60;
 
   const proms = [
     incrementColumn(

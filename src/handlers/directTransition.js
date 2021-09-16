@@ -1,7 +1,10 @@
 import { processMessage } from '../library/process';
 import { getErrorString } from '../library/util';
 import { parseMsg as sqsParser } from '../library/queue';
-import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount as incCallCount } from '../library/throttle';
+import {
+  getAvailableCallsThisSec as getAvailableCapacity,
+  incrementUsedCount as incCallCount,
+} from '../library/throttle';
 
 /**
  * This is the handler that is invoked by a SQS trigger to process
@@ -19,16 +22,27 @@ import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount as
  */
 export const handler = async (
   AWS,
-  {
-    throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity,
-  }, region, service, account, event, mHndlr, preWorkerHook) => {
+  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
+  region,
+  service,
+  account,
+  event,
+  mHndlr,
+  preWorkerHook,
+) => {
   try {
-    console.log(`directTransition: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
+    console.log(
+      `directTransition: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`,
+    );
 
     // If there are no records to process or more than one record to process,
     // throw an error as it is an invalid event
     if (typeof event.Records === 'undefined' || event.Records.length !== 1) {
-      throw new Error(`directTransition: ERROR: Lambda was wrongly triggered with ${typeof event.Records === 'undefined' ? 0 : event.Records.length} records`);
+      throw new Error(
+        `directTransition: ERROR: Lambda was wrongly triggered with ${
+          typeof event.Records === 'undefined' ? 0 : event.Records.length
+        } records`,
+      );
     }
 
     // Get the available capacity for making calls before going any further
@@ -39,7 +53,9 @@ export const handler = async (
         safeThrottleLimit,
         reserveCapForDirect,
         retryCntForCapacity,
-      }, service, false,
+      },
+      service,
+      false,
     );
     console.log(`directTransition: INFO: Processing event ${JSON.stringify(event.Records.length, null, 4)}`);
 
@@ -67,8 +83,7 @@ export const handler = async (
 
     // Call the message processer to process the message which includes error
     // handling and publishing response to SNS
-    await processMessage(AWS, region, service, account, { msgBody, msgAttribs },
-      mHndlr);
+    await processMessage(AWS, region, service, account, { msgBody, msgAttribs }, mHndlr);
 
     return 'directTransition: INFO: Processing complete';
   } catch (e) {
