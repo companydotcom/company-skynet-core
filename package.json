@@ -1,12 +1,11 @@
 {
   "name": "@companydotcom/company-skynet-core",
-  "version": "1.3.6-alpha.0",
+  "version": "1.3.6-alpha.1",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint . --ext js,ts --cache --fix",
     "prettier": "prettier --list-different './**/*.{js,ts}'",
     "typecheck": "tsc --noEmit",
     "prepare": "husky install"
