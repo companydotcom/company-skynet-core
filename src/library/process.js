@@ -271,7 +271,7 @@ export const processMessage = async (
 
   // * Validate any changes to the global and internal
   // * user MADS from the process worker response, then overwrite any changes
-  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData.user)) {
+  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData, 'user')) {
     const { user: userMads } = procRes.workerResp.microAppData;
 
     // * Validation
@@ -305,7 +305,7 @@ export const processMessage = async (
 
   // * Validate any changes to the global and internal
   // * account MADS from the process worker response, then overwrite any changes
-  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData.account)) {
+  if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData, 'account')) {
     const { account: accountMads } = procRes.workerResp.microAppData;
 
     // * Validation
