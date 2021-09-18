@@ -101,10 +101,10 @@ export const processMessage = async (
     },
   });
 
-  let accData = {};
-  let userData = {};
-  let internalAccountMads = {};
-  let internalUserMads = {};
+  let accData;
+  let userData;
+  let internalAccountMads;
+  let internalUserMads;
 
   if (
     itemExists(msgBody, 'context') &&
@@ -120,10 +120,10 @@ export const processMessage = async (
       getInternalUserMads(AWS, msgBody.context.user.userId),
     ]);
 
-    accData = accDataRes;
-    userData = userDataRes;
-    internalAccountMads = internalAccountMadsRes;
-    internalUserMads = internalUserMadsRes;
+    accData = accDataRes || {};
+    userData = userDataRes || {};
+    internalAccountMads = internalAccountMadsRes || {};
+    internalUserMads = internalUserMadsRes || {};
   }
 
   let serviceAccountData = {};
