@@ -118,11 +118,6 @@ export const processMessage = async (
       getInternalAccountMads(AWS, msgBody.context.user.accountId),
       getInternalUserMads(AWS, msgBody.context.user.userId),
     ]);
-
-    accData = accDataRes || {};
-    userData = userDataRes || {};
-    internalAccountMads = internalAccountMadsRes || {};
-    internalUserMads = internalUserMadsRes || {};
   }
 
   let serviceAccountData = {};
@@ -197,7 +192,6 @@ export const processMessage = async (
     msgHandler,
   );
   console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
-  console.log('accDataRes', accDataRes);
 
   if (itemExists(procRes.workerResp, 'serviceAccountData')) {
     if (typeof procRes.workerResp.serviceAccountData !== 'object') {
