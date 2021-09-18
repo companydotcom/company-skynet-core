@@ -105,7 +105,6 @@ export const processMessage = async (
   let userData;
   let internalAccountMads;
   let internalUserMads;
-
   if (
     itemExists(msgBody, 'context') &&
     itemExists(msgBody.context, 'user') &&
@@ -119,6 +118,9 @@ export const processMessage = async (
       getInternalAccountMads(AWS, msgBody.context.user.accountId),
       getInternalUserMads(AWS, msgBody.context.user.userId),
     ]);
+
+    console.log('All fetch request responses: ', accData, userDataRes, internalAccountMadsRes, internalUserMadsRes);
+    console.log(msgBody.context.user);
 
     accData = accDataRes || {};
     userData = userDataRes || {};
