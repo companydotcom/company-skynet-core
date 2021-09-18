@@ -325,6 +325,9 @@ export const processMessage = async (
     // * Overwrite current MADS with the process worker response MADS
     const [internalMads, globalMads] = filterMadsByReadAccess(accountMads);
 
+    console.log('internal mads: ', internalMads);
+    console.log('global mads: ', globalMads);
+
     accData.globalMicroAppData[service] = globalMads;
     internalAccountMads[service] = internalMads;
 
