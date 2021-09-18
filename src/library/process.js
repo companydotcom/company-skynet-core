@@ -112,7 +112,7 @@ export const processMessage = async (
     itemExists(msgBody.context.user, 'accountId')
   ) {
     // * all account and user fetch requests
-    const [accDataRes, userDataRes, internalAccountMadsRes, internalUserMadsRes] = await Promise.all([
+    [accData, userData, internalAccountMads, internalUserMads] = await Promise.all([
       getCurrentAccountData(AWS, msgBody.context.user.accountId),
       getCurrentUserData(AWS, msgBody.context.user.userId),
       getInternalAccountMads(AWS, msgBody.context.user.accountId),
