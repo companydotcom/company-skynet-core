@@ -274,6 +274,8 @@ export const processMessage = async (
   if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData, 'user')) {
     const { user: userMads } = procRes.workerResp.microAppData;
 
+    console.log('userMads: ', userMads);
+
     // * Validation
     if (!Array.isArray(userMads)) {
       throw new Error('Worker response in user microAppData must be of type Array.');
@@ -296,9 +298,13 @@ export const processMessage = async (
     // * Overwrite current MADS with the process worker response MADS
     const [internalMads, globalMads] = filterMadsByReadAccess(userMads);
 
+    console.log('internal mads: ', internalMads);
+    console.log('global mads: ', globalMads);
+
     userData.globalMicroAppData[service] = globalMads;
     internalUserMads[service] = internalMads;
 
+    console.log('writing to dynamo');
     await batchPutIntoDynamoDb(AWS, [userData], 'User');
     await batchPutIntoDynamoDb(AWS, [internalUserMads], 'internal-user-mads');
   }
@@ -307,6 +313,8 @@ export const processMessage = async (
   // * account MADS from the process worker response, then overwrite any changes
   if (itemExists(procRes.workerResp, 'microAppData') && itemExists(procRes.workerResp.microAppData, 'account')) {
     const { account: accountMads } = procRes.workerResp.microAppData;
+
+    console.log('accountMads: ', accountMads);
 
     // * Validation
     if (!Array.isArray(accountMads)) {
@@ -336,6 +344,7 @@ export const processMessage = async (
     accData.globalMicroAppData[service] = globalMads;
     internalAccountMads[service] = internalMads;
 
+    console.log('writing to dynamo');
     await batchPutIntoDynamoDb(AWS, [accData], 'Account');
     await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'internal-account-mads');
   }
