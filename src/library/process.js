@@ -197,6 +197,7 @@ export const processMessage = async (
     msgHandler,
   );
   console.log(`processMessage: INFO: Result from worker is ${JSON.stringify(procRes, null, 4)}`);
+  console.log('accDataRes', accDataRes);
 
   if (itemExists(procRes.workerResp, 'serviceAccountData')) {
     if (typeof procRes.workerResp.serviceAccountData !== 'object') {
