@@ -101,10 +101,10 @@ export const processMessage = async (
     },
   });
 
-  let accData;
-  let userData;
-  let internalAccountMads;
-  let internalUserMads;
+  let accData = {};
+  let userData = {};
+  let internalAccountMads = {};
+  let internalUserMads = {};
 
   if (
     itemExists(msgBody, 'context') &&
@@ -238,8 +238,6 @@ export const processMessage = async (
   }
 
   // * Set defaults if any internal or global MADS do not exist
-  internalAccountMads = {};
-  internalUserMads = {};
   if (!itemExists(userData, 'globalMicroAppData')) {
     userData.globalMicroAppData = {};
   }
