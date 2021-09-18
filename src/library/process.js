@@ -119,9 +119,6 @@ export const processMessage = async (
       getInternalUserMads(AWS, msgBody.context.user.userId),
     ]);
 
-    console.log('All fetch request responses: ', accData, userDataRes, internalAccountMadsRes, internalUserMadsRes);
-    console.log(msgBody.context.user);
-
     accData = accDataRes || {};
     userData = userDataRes || {};
     internalAccountMads = internalAccountMadsRes || {};
@@ -217,6 +214,8 @@ export const processMessage = async (
       ...accData.vendorData[service],
       ...procRes.workerResp.serviceAccountData,
     };
+
+    console.log('accData: ', accData);
     await batchPutIntoDynamoDb(AWS, [accData], 'Account');
   }
 
