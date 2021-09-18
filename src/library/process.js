@@ -210,7 +210,6 @@ export const processMessage = async (
       ...procRes.workerResp.serviceAccountData,
     };
 
-    console.log('accData: ', accData);
     await batchPutIntoDynamoDb(AWS, [accData], 'Account');
   }
 
@@ -250,8 +249,20 @@ export const processMessage = async (
     accData.globalMicroAppData[service] = [];
   }
 
+  if (!internalUserMads) {
+    internalUserMads = {
+      userId: msgBody.context.user.userId,
+    };
+  }
+
   if (!itemExists(internalUserMads, service)) {
     internalUserMads[service] = [];
+  }
+
+  if (!internalAccountMads) {
+    internalAccountMads = {
+      accountId: msgBody.context.user.accountId,
+    };
   }
 
   if (!itemExists(internalAccountMads, service)) {
