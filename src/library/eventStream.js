@@ -22,21 +22,21 @@ import { parseJson } from './util';
  * @param {*} val
  * @returns {Boolean}
  */
-const isString = val => typeof val === 'string';
+const isString = (val) => typeof val === 'string';
 
 /**
  * Determine if the given value is a number
  * @param {*} val
  * @returns {Boolean}
  */
-const isNumber = val => typeof val === 'number';
+const isNumber = (val) => typeof val === 'number';
 
 /**
  * Determine if the given value is an array
  * @param {*} val
  * @returns {Boolean}
  */
-const isArray = val => Array.isArray(val);
+const isArray = (val) => Array.isArray(val);
 
 /**
  * Get the type of the given value
@@ -44,7 +44,7 @@ const isArray = val => Array.isArray(val);
  * @returns {Boolean}
  * @throws {Error}
  */
-const getAttrType = val => {
+const getAttrType = (val) => {
   if (isString(val)) return 'String';
   if (isNumber(val)) return 'Number';
   if (isArray(val)) return 'String.Array';
@@ -56,8 +56,8 @@ const getAttrType = val => {
  * @param {Object} attributes JSON object
  * @returns {[{String: {DataType: String, StringValue: String}}]}
  */
-const parseAttributes = attributes => Object.keys(attributes)
-  .reduce((res, key) => {
+const parseAttributes = (attributes) =>
+  Object.keys(attributes).reduce((res, key) => {
     const val = attributes[key];
     if (typeof val === 'undefined') {
       return res;
@@ -67,8 +67,7 @@ const parseAttributes = attributes => Object.keys(attributes)
       ...res,
       [key]: {
         DataType: type,
-        StringValue: type === 'String.Array'
-          ? JSON.stringify(val) : val.toString(),
+        StringValue: type === 'String.Array' ? JSON.stringify(val) : val.toString(),
       },
     };
   }, {});
@@ -78,16 +77,14 @@ const parseAttributes = attributes => Object.keys(attributes)
  * @param {any} type
  * @returns {boolean}
  */
-const isSnsString = type => type === 'String';
+const isSnsString = (type) => type === 'String';
 
 /**
  * Parses object if it is not a string
  * @param {any} val
  * @param {any} type
  */
-const parseSnsType = (val, type) => (isSnsString(type)
-  ? val
-  : JSON.parse(val));
+const parseSnsType = (val, type) => (isSnsString(type) ? val : JSON.parse(val));
 
 export default {
   /**
@@ -123,18 +120,14 @@ export default {
    * @param {{ Records: [{ Sns: { Message: M, MessageAttributes: { [key: string]: MessageAttribute } } }] }} event
    * @returns {{ message: M, attributes: { [key: string]: string | number | array } }}
    */
-  parse: event => {
+  parse: (event) => {
     const message = parseJson(event.Records[0].Sns.Message);
-    const attributes = Object.keys(event.Records[0].Sns.MessageAttributes)
-      .reduce((res, key) => {
-        const {
-          Type: type,
-          Value: value,
-        } = event.Records[0].Sns.MessageAttributes[key];
+    const attributes = Object.keys(event.Records[0].Sns.MessageAttributes).reduce((res, key) => {
+      const { Type: type, Value: value } = event.Records[0].Sns.MessageAttributes[key];
 
-        const val = parseSnsType(value, type);
-        return { ...res, [key]: val };
-      }, {});
+      const val = parseSnsType(value, type);
+      return { ...res, [key]: val };
+    }, {});
     return { message, attributes };
   },
 };

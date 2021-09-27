@@ -5,7 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
-    "dev": "webpack"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . --ext js,ts --cache --fix",
+    "prettier": "prettier --list-different './**/*.{js,ts}'",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky install"
   },
   "author": "Company.com",
   "license": "ISC",
@@ -17,13 +21,15 @@
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",
     "@types/aws-lambda": "^8.10.83",
+    "@types/uuid": "^8.3.0",
+    "@types/lodash": "^4.14.168",
+    "@types/node": "^10.12.18",
     "babel-loader": "^8.0.6",
     "babel-plugin-source-map-support": "^2.0.1",
-    "eslint": "^5.16.0",
-    "eslint-config-airbnb-base": "^13.2.0",
-    "eslint-plugin-import": "^2.17.2",
-    "eslint-plugin-jest": "^22.7.2",
     "jest": "^24.8.0",
+    "ts-loader": "^5.3.3",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.2.4",
     "path": "^0.12.7",
     "serverless-webpack": "^5.3.0",
     "webpack": "^4.32.0",
@@ -33,9 +39,17 @@
   "dependencies": {
     "@middy/core": "^2.5.1",
     "@middy/util": "^2.5.1",
+    "@typescript-eslint/eslint-plugin": "^4.19.0",
+    "@typescript-eslint/parser": "^4.19.0",
     "deep-parse-json": "^1.0.1",
-    "lodash": "^4.17.15",
-    "source-map-support": "^0.5.12",
-    "uuid": "^3.3.3"
+    "aws-sdk": "^2.875.0",
+    "eslint": "^7.22.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "husky": "^5.2.0",
+    "lodash": "^4.17.21",
+    "prettier": "^2.2.1",
+    "source-map-support": "^0.5.19",
+    "uuid": "^8.3.2"
   }
 }
