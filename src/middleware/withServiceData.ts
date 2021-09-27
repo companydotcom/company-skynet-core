@@ -1,6 +1,8 @@
 import { itemExists } from '../library/util';
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from '../library/dynamo';
 import { getInternal } from '@middy/util';
+import middy from '@middy/core';
+import { SQSEvent } from 'aws-lambda';
 
 /**
  * Get the current account data from the database for the given accountId
@@ -79,11 +81,18 @@ const getUserServiceData = async ({ AWS, service }, msgBody) => {
   return serviceUserData;
 }
 
+type Options = {
+  service: string;
+  AWS: any;
+}
+
 const defaults = {};
 
 const createWithServiceDataStore = (opts = {}) => {
-  const options = { ...defaults, ...opts }
-  const serviceDataBefore = async request => {
+  const options = { ...defaults, ...opts } as Options;
+  const serviceDataBefore: middy.MiddlewareFn<SQSEvent, any> = async (
+    request
+  ): Promise<void> => {
     // fetch vendorConfig
     // For now on userContext, but if these move to SSM/Parameter store
     // fetch serviceUserData
@@ -95,8 +104,11 @@ const createWithServiceDataStore = (opts = {}) => {
     // fetch serviceAccountData
   };
 
-  const serviceDataAfter = async request => {
+  const serviceDataAfter: middy.MiddlewareFn<SQSEvent, any> = async (
+    request
+  ): Promise<void> => {
     const { AWS, service } = options;
+
     const data = await getInternal('messagesToProcess', request);
     // set changes to serviceUserData/serviceAccountData
     Promise.all(data.messagesToProcess.map(async m => {

@@ -88,6 +88,7 @@ export const getCallsMade = async (AWS, serviceName) => {
  * Gets the count of calls that can be made this second without hitting the
  * throttle limit
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {object} options defines the api limits and how close to maximum threshold the service should be allowed to use
  * @param {String} serviceName is the name of the service for which the count is required
  * @param {Boolean} bulk tells whether the call is going to be bulk or direct
  * @returns {Number}
