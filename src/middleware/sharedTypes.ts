@@ -1,33 +1,78 @@
 import { SQSEvent, ScheduledEvent } from 'aws-lambda';
+import middy from '@middy/core';
 
-type ParsedSqs = {
-  body: any;
-  attributes: any;
+export type Context = {
+  user: any;
+  account: any;
+  product?: any;
+  tile?: any;
+};
+
+interface TransitionMetadata extends StandardMetadata {
+  eventType: string;
+  tileId: string;
+  stateCurrent: string;
+  statePrevious: string;
+}
+
+interface StandardMetadata {
+  eventType: string;
+  tileId: string;
+}
+
+type MessageBody = {
+  payload?: any;
+  context: Context;
+  metadata: TransitionMetadata | StandardMetadata;
+};
+
+type MessageAttributes = {
+  emitter: string;
+  eventId: string;
+  triggerEventId: string;
+  entity: string;
+  entityId: string;
+  operation: 'C';
+  status: string;
+  eventType: string;
+};
+
+export interface SkynetMessage {
+  msgBody: MessageBody;
+  msgAttribs: MessageAttributes;
+  rcptHandle?: any;
+}
+
+export interface HandledSkynetMessage extends SkynetMessage {
+  workerResp: any;
 }
 
 export type RawEvent = SQSEvent | ScheduledEvent;
-
-export type ProcessedEvent = [ParsedSqs];
-
-export type HandledMessage = {
-  msgBody: any;
-  msgAttribs: any;
-  workerResp: any;
-}
 
 type ThrottleLimits = {
   second?: number;
   minute?: number;
   hour?: number;
   day?: number;
-}
+};
 
 type ThrottleSettings = {
   throttleLmts: ThrottleLimits;
   safeThrottleLimit: number;
   reserveCapForDirect: number;
   retryCntForCapacity: number;
-}
+};
+
+export type Options = {
+  isBulk?: boolean;
+  eventType?: 'transition' | 'fetch';
+  service?: string;
+  region?: string;
+  account?: string;
+  AWS?: any;
+  maxMessagesPerInstance?: number;
+  throttleOptions?: ThrottleSettings;
+};
 
 export interface CoreSkynetConfig {
   eventType: 'fetch' | 'transition' | 'webhook';
@@ -39,3 +84,50 @@ export interface CoreSkynetConfig {
   throttleOptions?: ThrottleSettings;
   maxMessagesPerInstance?: number;
 }
+
+export type AllowableConfigKeys =
+  | 'eventType'
+  | 'isBulk'
+  | 'region'
+  | 'service'
+  | 'account'
+  | 'useThrottling'
+  | 'throttleOptions'
+  | 'maxMessagesPerInstance';
+
+export const addToEventContext = (
+  request: middy.Request,
+  message: SkynetMessage,
+  middlewareName: string,
+  data: any,
+) => {
+  const messageId = message.msgAttribs.eventId;
+  if (!request.internal[messageId]) {
+    request.internal[messageId] = {};
+  }
+
+  request.internal[messageId][middlewareName] = data;
+};
+
+export const prepareMiddlewareDataForWorker = async (request: middy.Request, message: SkynetMessage) => {
+  const messageId = message.msgAttribs.eventId;
+  if (!request.internal[messageId]) {
+    return {};
+  }
+  const midsInUse = Object.keys(request.internal[messageId]);
+  return midsInUse.reduce((acc: object, midName: string): object => {
+    const midData = request.internal[messageId][midName];
+    const dataKeys = Object.keys(midData);
+    dataKeys.forEach((key: string) => {
+      acc.hasOwnProperty(key);
+      if (acc.hasOwnProperty(key)) {
+        console.warn(
+          `Middleware data key ${key} in middleware ${midName} collides with another middleware's data key.  This is not permitted`,
+        );
+      } else {
+        Object.defineProperty(acc, key, request.internal[messageId][midName][key]);
+      }
+    });
+    return acc;
+  }, {} as any);
+};

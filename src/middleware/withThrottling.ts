@@ -1,48 +1,31 @@
 import middy from '@middy/core';
-import { getInternal }  from '@middy/util';
-import { SQSEvent, ScheduledEvent } from 'aws-lambda';
+import { getInternal } from '@middy/util';
+import { HandledSkynetMessage, RawEvent, Options } from './sharedTypes';
 
-
-import {  getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount } from '../library/throttle';
-
+import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount } from '../library/throttle';
 
 const defaults = {
   isBulk: false,
-  throttleLmts: {},
-  safeThrottleLimit: 0.1,
-  reserveCapForDirect: 0.9,
-  retryCntForCapacity: 3,
+  throttleOptions: {
+    throttleLmts: {},
+    safeThrottleLimit: 0.1,
+    reserveCapForDirect: 0.9,
+    retryCntForCapacity: 3,
+  },
 };
 
-type Options = {
-  AWS: any;
-  isBulk: boolean;
-  throtteLmts: any;
-  service: string;
-  safeThrottleLimit: number;
-  reserveCapForDirect: number;
-  retryCntForCapacity: number;
-}
-
-const createWithThrottling = (opt: Options): middy.MiddlewareObj<SQSEvent, any> => {
+const createWithThrottling = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
   const options = { ...defaults, ...opt };
 
   // REQUEST HAS "event" "context" "response" and "error" keys
-  const throttleBefore: middy.MiddlewareFn<SQSEvent, any> = async (
-    request
-  ): Promise<void> => {
+  const throttleBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
     // fetch callCount records from dynamo
     // compare to options ThrottleLmts
     // set availCap to `internal`
     // if no capacity "return" early
 
     // need to figure out increment
-    const availCap = await getAvailableCapacity(
-      options.AWS,
-      options,
-      options.service,
-      options.isBulk,
-    );
+    const availCap = await getAvailableCapacity(options.AWS, options.throttleOptions, options.service, options.isBulk);
 
     if (availCap < 1) {
       console.log('No Capacity available for requests');
@@ -52,17 +35,21 @@ const createWithThrottling = (opt: Options): middy.MiddlewareObj<SQSEvent, any> 
     await incrementUsedCount(options.AWS, options.service, options.isBulk ? availCap : 1);
   };
 
-  const throttleAfter: middy.MiddlewareFn<SQSEvent, any> = async (
-    request
-  ): Promise<void> => {
+  // eventually need to consider how to handled workers that are calling multiple apis which have different api call limits.  ways which we can wrap individual api calls and track in that manner based on doing an estimation based on an entire lambda execution.
+
+  const throttleAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
     // if request contains key to adjust used capacity
     // - adjust call count
-    const data = getInternal(['messagesToProcess', 'availCap'], request);
+    const data = await getInternal(['messagesToProcess', 'availCap'], request);
     if (data.availCap && data.messagesToProcess) {
       // TODO: consider implications of this "post operation adjustment" on esp. per Second throttling - however since bulk operations only run every 5 minutes it should be acceptable to not do a "pre-operation" update - meaning that this number doesn't need to be negative.  (of course the "perSecond" has never been truly accurate).  This being given that the "reservedCapForDirect" is high enough as well as the "max usage" value (whatever its called)
 
-      await incrementUsedCount(options.AWS, options.service, data.messagesToProcess.length - data.availCap)
+      await incrementUsedCount(options.AWS, options.service, data.messagesToProcess.length - data.availCap);
     }
+  };
+
+  const onError = () => {
+    // adjust availCap.  check to see if request.response exists, if not, no throughput was used
   };
 
   return {

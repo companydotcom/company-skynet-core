@@ -9,6 +9,7 @@
     "target": "es2017",
     "outDir": "lib",
     "strict": true,
+    "checkJs": false,
     "allowSyntheticDefaultImports": true
   },
   "include": [
@@ -18,7 +19,7 @@
     "src/library/throttle.js",
     "src/library/queue.js",
     "src/library/eventStream.js",
-    "src/library/dynamo.js",
+    "src/library/dynamo.ts",
     "dist/index.js",
     "src/handlers/webhook.js",
     "src/handlers/setupDatabase.js",
