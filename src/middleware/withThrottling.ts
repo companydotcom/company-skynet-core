@@ -1,6 +1,6 @@
 import middy from '@middy/core';
 import { getInternal } from '@middy/util';
-import { HandledSkynetMessage, RawEvent, Options } from './sharedTypes';
+import { HandledSkynetMessage, RawEvent, Options, ThrottleSettings } from './sharedTypes';
 
 import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount } from '../library/throttle';
 
@@ -14,8 +14,19 @@ const defaults = {
   },
 };
 
+type SettledOptions = {
+  isBulk: boolean;
+  eventType: 'transition' | 'fetch';
+  service: string;
+  region: string;
+  account: string;
+  AWS?: any;
+  maxMessagesPerInstance: number;
+  throttleOptions: ThrottleSettings;
+};
+
 const createWithThrottling = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
-  const options = { ...defaults, ...opt };
+  const options = { ...defaults, ...opt } as SettledOptions;
 
   // REQUEST HAS "event" "context" "response" and "error" keys
   const throttleBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {

@@ -14,6 +14,9 @@ import {
   prepareMiddlewareDataForWorker,
 } from './middleware/sharedTypes';
 
+import { handler as gpH } from './handlers/getPostHttp';
+import { handler as sDb } from './handlers/setupDatabase';
+
 const createTailoredOptions = (
   keys: Array<AllowableConfigKeys>,
   skynetConfig: CoreSkynetConfig,
@@ -105,6 +108,28 @@ export const useSkynet = async (
   return middleware.reduce((middyHandler, midlw) => middyHandler.use(midlw), handler);
 };
 
+/**
+ * This is the fetch request handler
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {Object} d is the data to be saved
+ * @param {string} s service is the name of the service
+ */
+export const setupDatabase = async (AWS: any, d: any, s: string) => {
+  let data = '';
+  if (typeof d === 'object') {
+    data = d;
+  } else {
+    try {
+      data = JSON.parse(d);
+    } catch (e) {
+      console.log('Unable to parse the database file. Please check if it is a valid JSON document.');
+      return;
+    }
+  }
+  // eslint-disable-next-line consistent-return
+  return sDb(AWS, data, s);
+};
+
 // TODO: I think we should be able to kill this - I'm not sure what currently uses it, it was a Bharath add.  Http requests should go through management-svc, we don't need a separate endpoint on every service just to push the request into SNS
 /**
  * This is the get http request handler
@@ -114,4 +139,5 @@ export const useSkynet = async (
  * @param {string} a account is AWS the account number
  * @param {object} b is the event input
  */
-export const httpReqHandler = async (AWS, r, s, a, b, c) => gpH(AWS, r, s, a, b, c);
+export const httpReqHandler = async (AWS: any, r: string, s: string, a: string, b: any, c: any) =>
+  gpH(AWS, r, s, a, b, c);

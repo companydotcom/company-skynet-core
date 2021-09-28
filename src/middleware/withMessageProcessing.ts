@@ -1,7 +1,7 @@
 import middy from '@middy/core';
 import { getInternal } from '@middy/util';
 import { SQSEvent, ScheduledEvent, SNSEvent } from 'aws-lambda';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 
 import es from '../library/eventStream';
 
@@ -30,8 +30,18 @@ const queueNameMap = {
   fetch: 'bulkfq',
 };
 
+type SettledOptions = {
+  isBulk: boolean;
+  eventType: 'transition' | 'fetch';
+  service: string;
+  region: string;
+  account: string;
+  AWS?: any;
+  maxMessagesPerInstance: number;
+};
+
 // TODO: move this out to "withExtraStatus"
-const getCompleteStatus = (procResult: object) => {
+const getCompleteStatus = (procResult: any) => {
   let result = procResult.status;
   if (
     Object.prototype.hasOwnProperty.call(procResult, 'workerResp') &&
@@ -59,14 +69,17 @@ const handleSingle = async (request: middy.Request, options: Options) => {
   request.event = [sqsParser(request.event.Records[0])];
 
   // TODO: Decide whether to keep this here or kick it out to throttle
-  await incrementUsedCount(options.AWS, options.service, 1);
+  await incrementUsedCount(options.AWS, options.service || '', 1);
 };
 
-const handleBulk = async (request: middy.Request, options: Options) => {
+const handleBulk = async (request: middy.Request, options: SettledOptions) => {
   // check internal for if an "availCap" has been set
   if (options.isBulk) {
     const throttleResult = await getInternal(['availCap'], request);
-    let availCap = Math.min(options.maxMessagesPerInstance, throttleResult?.availCap || options.maxMessagesPerInstance);
+    let availCap = Math.min(
+      options.maxMessagesPerInstance || 500,
+      throttleResult?.availCap || options.maxMessagesPerInstance,
+    );
     const messagesToProcess = await getMsgsFromQueue(
       options.AWS,
       options.region,
@@ -84,7 +97,7 @@ const handleBulk = async (request: middy.Request, options: Options) => {
   }
 };
 
-const sendToDlq = async (message: SkynetMessage, options: Options, error: Error | null) => {
+const sendToDlq = async (message: SkynetMessage, options: SettledOptions, error: Error | null) => {
   const { region, account, service, AWS } = options;
   const { msgBody, msgAttribs } = message;
   await sendSqsMsg(
@@ -111,7 +124,7 @@ function isSqsEvent(obj: any): obj is SQSEvent {
 }
 
 const createWithSqsHandling = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
-  const options = { ...defaults, ...opt } as Options;
+  const options = { ...defaults, ...opt } as SettledOptions;
 
   const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
     if (isScheduledEvent(request.event) && options.isBulk) {

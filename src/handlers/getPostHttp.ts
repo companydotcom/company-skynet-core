@@ -14,7 +14,14 @@ import { getErrorString } from '../library/util';
  * @returns {string}
  * @throws {Error}
  */
-export const handler = async (AWS, region, service, account, entityId, event) => {
+export const handler = async (
+  AWS: any,
+  region: string,
+  service: string,
+  account: string,
+  entityId: string,
+  event: any,
+) => {
   try {
     console.log(`getpostHttp: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
 

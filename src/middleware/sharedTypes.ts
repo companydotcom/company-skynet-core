@@ -56,7 +56,7 @@ type ThrottleLimits = {
   day?: number;
 };
 
-type ThrottleSettings = {
+export type ThrottleSettings = {
   throttleLmts: ThrottleLimits;
   safeThrottleLimit: number;
   reserveCapForDirect: number;

@@ -9,7 +9,6 @@
     "target": "es2017",
     "outDir": "lib",
     "strict": true,
-    "checkJs": false,
     "allowSyntheticDefaultImports": true
   },
   "include": [
@@ -22,8 +21,8 @@
     "src/library/dynamo.ts",
     "dist/index.js",
     "src/handlers/webhook.js",
-    "src/handlers/setupDatabase.js",
-    "src/handlers/getPostHttp.js",
+    "src/handlers/setupDatabase.ts",
+    "src/handlers/getPostHttp.s",
     "src/handlers/fetch.js",
     "src/handlers/bulkTransition.js",
     "src/handlers/bulkFetch.js"

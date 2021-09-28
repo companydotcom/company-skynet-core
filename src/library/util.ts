@@ -6,7 +6,7 @@ import { camelCase } from 'lodash';
  * @param {any} v
  * @returns {any}
  */
-export const parseJson = (v) => {
+export const parseJson = (v: any) => {
   try {
     return JSON.parse(v);
   } catch (err) {
@@ -14,7 +14,7 @@ export const parseJson = (v) => {
   }
 };
 
-export const deepParseJson = (jsonString) => {
+export const deepParseJson = (jsonString: any): any => {
   if (typeof jsonString === 'string') {
     if (!isNaN(Number(jsonString))) {
       return jsonString;
@@ -27,10 +27,10 @@ export const deepParseJson = (jsonString) => {
   } else if (Array.isArray(jsonString)) {
     return jsonString.map((val) => deepParseJson(val));
   } else if (typeof jsonString === 'object' && jsonString !== null) {
-    return Object.keys(jsonString).reduce((obj, key) => {
+    return Object.keys(jsonString).reduce((obj, key: string) => {
       obj[key] = deepParseJson(jsonString[key]);
       return obj;
-    }, {});
+    }, {} as any);
   } else {
     return jsonString;
   }
@@ -40,7 +40,7 @@ export const deepParseJson = (jsonString) => {
  * Returns the string equivalent meaning for given HTTP status code
  * @param {Number} code
  */
-const getCodeStatus = (code) => {
+const getCodeStatus = (code: number) => {
   switch (code) {
     case 200:
       return 'OK';
@@ -68,10 +68,10 @@ const getCodeStatus = (code) => {
  * @param {*} result
  * @returns {LambdaProxyIntegrationResponse}
  */
-export const formatHttpResponse = (code, input, result) => {
+export const formatHttpResponse = (code: number, input: any, result: any) => {
   const status = getCodeStatus(code);
   const resp = `HTTP Resp: ${code}${status ? ` - ${status}` : ''}`;
-  let resultObj = {};
+  let resultObj = {} as any;
   if (result instanceof Error) {
     resultObj.error = result.toString();
   } else if (typeof result === 'object') {
@@ -98,7 +98,7 @@ export const formatHttpResponse = (code, input, result) => {
  * @param {Object/ String/ Error} e
  * @returns {String}
  */
-export const getErrorString = (e) => {
+export const getErrorString = (e: any) => {
   if (e instanceof Error) {
     return e.toString();
   }
@@ -115,11 +115,11 @@ export const getErrorString = (e) => {
  * @param {Function} messageHandler
  * @returns {Object}
  */
-export const neverThrowError = async (params, messageHandler) => {
+export const neverThrowError = async (params: any, messageHandler: Function) => {
   const result = {
     status: 'pass',
     params,
-  };
+  } as any;
   try {
     result.workerResp = await messageHandler(params);
   } catch (e) {
@@ -133,9 +133,9 @@ export const neverThrowError = async (params, messageHandler) => {
  * Classis sleep function using async-await
  * @param {Number} s is the number of milliseconds to sleep
  */
-export const sleep = async (s) =>
-  new Promise((r) =>
-    setTimeout(() => {
+export const sleep = async (s: number) =>
+  new Promise((r: Function) =>
+    setTimeout((): void => {
       r();
     }, s),
   );
@@ -147,7 +147,7 @@ export const sleep = async (s) =>
  * @returns {Boolean}
  */
 // eslint-disable-next-line max-len
-export const itemExists = (obj, param) =>
+export const itemExists = (obj: any, param: string) =>
   typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(obj, param) : false;
 
 /**
@@ -158,8 +158,8 @@ export const itemExists = (obj, param) =>
  * @returns a globalMicroAppData object filtered to just the data points that current service has access to
  * @abstract docs: https://bit.ly/3kdY2w9
  */
-export const evaluateMadsReadAccess = (globalMicroAppData, service) => {
-  let result = {};
+export const evaluateMadsReadAccess = (globalMicroAppData: any, service: string) => {
+  let result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
   // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
@@ -184,8 +184,8 @@ export const evaluateMadsReadAccess = (globalMicroAppData, service) => {
  * @returns a readable MADS object.
  * @abstract docs: https://bit.ly/3kdY2w9
  */
-export const transformMadsToReadFormat = (mads) => {
-  let result = {};
+export const transformMadsToReadFormat = (mads: any) => {
+  let result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
   // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
@@ -194,7 +194,7 @@ export const transformMadsToReadFormat = (mads) => {
       const eachMadsReduced = value.reduce((acc, cur) => {
         acc[cur.key] = cur.value;
         return acc;
-      }, {});
+      }, {} as any);
 
       result[key] = eachMadsReduced;
     }
@@ -208,15 +208,15 @@ export const transformMadsToReadFormat = (mads) => {
  * @param {Object: worker response MADS} mads from the process worker response
  * @returns {string || null} Returns first duplicate key in MADS array, or null if no duplicates
  */
-export const findDuplicateMadsKeys = (mads) => {
+export const findDuplicateMadsKeys = (mads: any) => {
   let duplicateKey;
 
-  const keyCount = mads.reduce((acc, cur) => {
+  const keyCount = mads.reduce((acc: any, cur: any) => {
     acc[cur.key] = acc[cur.key] >= 0 ? acc[cur.key] + 1 : 0;
     return acc;
-  }, {});
+  }, {} as any);
 
-  Object.entries(keyCount).forEach(([key, value]) => {
+  Object.entries(keyCount).forEach(([key, value]: [any, any]) => {
     if (value > 0) {
       duplicateKey = key;
     }
@@ -231,9 +231,9 @@ export const findDuplicateMadsKeys = (mads) => {
  * @param {Object: worker response MADS} mads from the process worker response
  * @returns {Array: [internalMads, globalMads]}
  */
-export const filterMadsByReadAccess = (mads) => {
-  const internalMads = mads.filter((item) => item.readAccess.length === 0);
-  const globalMads = mads.filter((item) => item.readAccess.length > 0);
+export const filterMadsByReadAccess = (mads: any) => {
+  const internalMads = mads.filter((item: any) => item.readAccess.length === 0);
+  const globalMads = mads.filter((item: any) => item.readAccess.length > 0);
 
   return [internalMads, globalMads];
 };

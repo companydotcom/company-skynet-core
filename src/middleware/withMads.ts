@@ -5,14 +5,13 @@ import { SkynetMessage, HandledSkynetMessage, addToEventContext, Options } from 
 import {
   transformMadsToReadFormat,
   evaluateMadsReadAccess,
-  fetchRecordsByQuery,
   itemExists,
   findDuplicateMadsKeys,
   filterMadsByReadAccess,
   /* tslint:disable-next-line */
 } from '../library/util.js';
 /* tslint:disable-next-line */
-import { batchPutIntoDynamoDb } from '../library/dynamo';
+import { batchPutIntoDynamoDb, fetchRecordsByQuery } from '../library/dynamo';
 
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
@@ -176,7 +175,7 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
 
     // * Validate any changes to the global and internal
     // * account MADS from the process worker response, then overwrite any changes
-    if (itemExists(workerResp, 'microAppData') && itemExists(workerResp.microAppData.account)) {
+    if (itemExists(workerResp, 'microAppData') && itemExists(workerResp.microAppData, 'account')) {
       const { account: accountMads } = workerResp.microAppData;
 
       // * Validation

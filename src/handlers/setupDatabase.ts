@@ -9,7 +9,7 @@ import { getErrorString } from '../library/util';
  * @returns {string}
  * @throws {Error}
  */
-export const handler = async (AWS, data, service) => {
+export const handler = async (AWS: any, data: any, service: string) => {
   try {
     const record = {
       service,

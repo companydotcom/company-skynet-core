@@ -8,7 +8,7 @@ const safeMsgFetchLimitPerInstance = 500;
  * @returns {[{String: *}]}
  */
 // eslint-disable-next-line arrow-body-style
-const unmarshallMsgAttribs = (attribs) => {
+const unmarshallMsgAttribs = (attribs: any) => {
   return Object.keys(attribs).reduce((res, key) => {
     const { Type: type, Value: value } = attribs[key];
 
@@ -25,7 +25,7 @@ const unmarshallMsgAttribs = (attribs) => {
  * @param {Object} message
  * @returns { msgBody: Object, msgAttribs: Object, rcptHandle: String}
  */
-export const parseMsg = (message) => {
+export const parseMsg = (message: any) => {
   let msgB = message.Body ? message.Body : message.body;
   let msgAttribs = {};
   try {
@@ -52,7 +52,7 @@ export const parseMsg = (message) => {
  * @param {String} msg is the message that needs to be sent
  * @returns {*}
  */
-export const sendMsg = async (AWS, region, qUrl, msg) => {
+export const sendMsg = async (AWS: any, region: string, qUrl: string, msg: any) => {
   const sqs = new AWS.SQS({ region });
   return sqs
     .sendMessage({
@@ -70,10 +70,10 @@ export const sendMsg = async (AWS, region, qUrl, msg) => {
  * @param {String} QueueUrl is the url of the queue from which to fetch the messages
  * @returns {[SQSMessage]}
  */
-export const getMsgsFromQueue = async (AWS, region, msgCountToFetch, QueueUrl) => {
+export const getMsgsFromQueue = async (AWS: any, region: string, msgCountToFetch: number, QueueUrl: string) => {
   console.log(`Fetching messages from SQS URL: ${QueueUrl}`);
   const sqs = new AWS.SQS({ region });
-  let messages = [];
+  let messages: any[] = [];
   const proms = [];
   let msgsToFetch = msgCountToFetch < safeMsgFetchLimitPerInstance ? msgCountToFetch : safeMsgFetchLimitPerInstance;
   while (msgsToFetch > 0) {
@@ -106,7 +106,7 @@ export const getMsgsFromQueue = async (AWS, region, msgCountToFetch, QueueUrl) =
  * @param {String} ReceiptHandle is the receipt handle of the message to be deleted
  * @returns {*}
  */
-export const deleteMsg = async (AWS, region, QueueUrl, ReceiptHandle) => {
+export const deleteMsg = async (AWS: any, region: string, QueueUrl: string, ReceiptHandle: string) => {
   const sqs = new AWS.SQS({ region });
   sqs
     .deleteMessage({

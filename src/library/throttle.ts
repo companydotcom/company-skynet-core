@@ -8,7 +8,7 @@ import { sleep } from './util';
  * @param {String} serviceName is the service for which the metrics are to be fetched
  * @returns {{ second: Number, minute: Number, hour: Number, day: Number }}
  */
-export const getCallsMade = async (AWS, serviceName) => {
+export const getCallsMade = async (AWS: any, serviceName: string) => {
   const currMs = Date.now();
   // Get the next second (without the milliseconds)
   const currSec = Math.floor(currMs / 1000) + 1;
@@ -71,6 +71,13 @@ export const getCallsMade = async (AWS, serviceName) => {
   };
 };
 
+type arg = {
+  throttleLmts: any;
+  safeThrottleLimit: number;
+  reserveCapForDirect: number;
+  retryCntForCapacity: number;
+};
+
 /**
  * Gets the count of calls that can be made this second without hitting the
  * throttle limit
@@ -81,12 +88,12 @@ export const getCallsMade = async (AWS, serviceName) => {
  * @returns {Number}
  */
 export const getAvailableCallsThisSec = async (
-  AWS,
-  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity },
-  serviceName,
-  bulk = true,
-  iter = 0,
-) => {
+  AWS: any,
+  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity }: arg,
+  serviceName: string,
+  bulk: boolean = true,
+  iter: number = 0,
+): Promise<number> => {
   if (iter > retryCntForCapacity) {
     return 0;
   }
@@ -106,32 +113,20 @@ export const getAvailableCallsThisSec = async (
 
   const resFact = bulk === true ? (1 - reserveCapForDirect) * safeThrottleLimit : 1 * safeThrottleLimit;
   const callsMade = await getCallsMade(AWS, serviceName);
-  let availLmt = 'x';
-  if (
-    typeof throtLmts.day !== 'undefined' &&
-    (Math.floor(throtLmts.day * resFact - callsMade.day) < availLmt || availLmt === 'x')
-  ) {
+  let availLmt = Number.MAX_SAFE_INTEGER;
+  if (typeof throtLmts.day !== 'undefined' && Math.floor(throtLmts.day * resFact - callsMade.day) < availLmt) {
     availLmt = Math.floor((throtLmts.day - callsMade.day) * resFact);
   }
 
-  if (
-    typeof throtLmts.hour !== 'undefined' &&
-    (Math.floor(throtLmts.hour * resFact - callsMade.hour) < availLmt || availLmt === 'x')
-  ) {
+  if (typeof throtLmts.hour !== 'undefined' && Math.floor(throtLmts.hour * resFact - callsMade.hour) < availLmt) {
     availLmt = Math.floor((throtLmts.hour - callsMade.hour) * resFact);
   }
 
-  if (
-    typeof throtLmts.minute !== 'undefined' &&
-    (Math.floor(throtLmts.minute * resFact - callsMade.minute) < availLmt || availLmt === 'x')
-  ) {
+  if (typeof throtLmts.minute !== 'undefined' && Math.floor(throtLmts.minute * resFact - callsMade.minute) < availLmt) {
     availLmt = Math.floor((throtLmts.minute - callsMade.minute) * resFact);
   }
 
-  if (
-    typeof throtLmts.second !== 'undefined' &&
-    (Math.floor(throtLmts.second * resFact - callsMade.second) < availLmt || availLmt === 'x')
-  ) {
+  if (typeof throtLmts.second !== 'undefined' && Math.floor(throtLmts.second * resFact - callsMade.second) < availLmt) {
     availLmt = Math.floor((throtLmts.second - callsMade.second) * resFact);
   }
 
@@ -159,7 +154,7 @@ export const getAvailableCallsThisSec = async (
  * @param {Number} incVal is the increment value. Defaults to 1
  * @returns {Boolean}
  */
-export const incrementUsedCount = async (AWS, serviceName, incVal = 1) => {
+export const incrementUsedCount = async (AWS: any, serviceName: string, incVal: number = 1) => {
   const currMs = Date.now();
   const currSec = Math.floor(currMs / 1000) + 1;
   const currMin = currSec - (currSec % 60) + 60;

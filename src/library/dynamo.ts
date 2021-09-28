@@ -15,7 +15,7 @@ const dynamoDbQuerySafeBatchLimit = 1000;
  * @param {Object} queryObject
  * @returns {[{String: *}]}
  */
-export const fetchRecordsByQuery = async (AWS, queryObject, paginate = false) => {
+export const fetchRecordsByQuery = async (AWS: any, queryObject: any, paginate = false) => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Add safe fetch limit if one is not set
   if (!itemExists(queryObject, 'Limit')) {
@@ -29,7 +29,7 @@ export const fetchRecordsByQuery = async (AWS, queryObject, paginate = false) =>
         return { items: [], ExclusiveStartKey: undefined };
       }
       return {
-        items: qResult.Items.map((it) => AWS.DynamoDB.Converter.unmarshall(it)),
+        items: qResult.Items.map((it: any) => AWS.DynamoDB.Converter.unmarshall(it)),
         ExclusiveStartKey: itemExists(qResult, 'LastEvaluatedKey') ? qResult.LastEvaluatedKey : undefined,
       };
     }
@@ -37,7 +37,7 @@ export const fetchRecordsByQuery = async (AWS, queryObject, paginate = false) =>
       return [];
     }
     // Convert DynamoDb stlye objects to simple Javascript objects
-    return qResult.Items.map((item) => AWS.DynamoDB.Converter.unmarshall(item));
+    return qResult.Items.map((item: any) => AWS.DynamoDB.Converter.unmarshall(item));
   } catch (err) {
     throw err;
   }
@@ -53,7 +53,13 @@ export const fetchRecordsByQuery = async (AWS, queryObject, paginate = false) =>
  * @returns {Boolean}
  */
 // eslint-disable-next-line arrow-body-style
-export const incrementColumn = async (AWS, tName, srchParams, colName, incVal) => {
+export const incrementColumn = async (
+  AWS: any,
+  tName: string,
+  srchParams: any,
+  colName: string,
+  incVal: number = 1,
+) => {
   const docClient = new AWS.DynamoDB.DocumentClient();
   const obj = {
     TableName: tName,
@@ -73,11 +79,16 @@ export const incrementColumn = async (AWS, tName, srchParams, colName, incVal) =
  * @param {String} tName
  * @returns {Boolean}
  */
-export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => {
+export const batchPutIntoDynamoDb = async (
+  AWS: any,
+  recs: any,
+  tName: string,
+  backoff: number = 1000,
+): Promise<void> => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Convert all records to DynamoDb object structure and append the top level
   // object structure for each record insertion
-  const preparedRecords = recs.map((record) => ({
+  const preparedRecords = recs.map((record: any) => ({
     PutRequest: { Item: AWS.DynamoDB.Converter.marshall(record) },
   }));
 
@@ -116,7 +127,7 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => 
           resultDatum.UnprocessedItems[tName].length > 0
         ) {
           // eslint-disable-next-line max-len
-          return resultDatum.UnprocessedItems[tName].map((unprocessedRec) =>
+          return resultDatum.UnprocessedItems[tName].map((unprocessedRec: any) =>
             AWS.DynamoDB.Converter.unmarshall(unprocessedRec.PutRequest.Item),
           );
         }
@@ -127,7 +138,6 @@ export const batchPutIntoDynamoDb = async (AWS, recs, tName, backoff = 1000) => 
       await sleep(backoff);
       return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName, backoff + 1000);
     }
-    return true;
   } catch (err) {
     throw err;
   }
