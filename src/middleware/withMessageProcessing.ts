@@ -51,7 +51,7 @@ const getCompleteStatus = (procResult: any) => {
   return result;
 };
 
-const handleSingle = async (request: middy.Request, options: Options) => {
+const handleSingle = async (request: middy.Request) => {
   // If there are no records to process or more than one record to process,
   // throw an error as it is an invalid event
   if (
@@ -123,7 +123,7 @@ const withMessageProcessing = (opt: Options): middy.MiddlewareObj<RawEvent, [Han
     if (isScheduledEvent(request.event) && options.isBulk) {
       await handleBulk(request, options);
     } else if (isSqsEvent(request.event)) {
-      await handleSingle(request, options);
+      await handleSingle(request);
     } else {
       throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
     }

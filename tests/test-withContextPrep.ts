@@ -37,7 +37,7 @@ const test = async (event: any) => {
     },
   });
 
-  await middifiedHandler(event, {}, () => {
+  await middifiedHandler(event, {} as any, () => {
     console.log('did this work');
   });
 };
@@ -74,9 +74,9 @@ const sampleSkynetMessages = [
   },
 ];
 
-const sampleBadEvent = {
-  hello: 'world',
-};
+// const sampleBadEvent = {
+//   hello: 'world',
+// };
 
 const run = async () => {
   // try {

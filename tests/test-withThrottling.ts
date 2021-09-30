@@ -2,7 +2,6 @@ import withThrottling from '../src/middleware/withThrottling';
 import middy from '@middy/core';
 import AWS from 'aws-sdk';
 import { getMiddyInternal, Options } from '../src/middleware/sharedTypes';
-import createWithContextPrep from '../src/middleware/withContextPrep';
 
 AWS.config.update({ region: process.env.region });
 
@@ -58,7 +57,7 @@ const test = async (event: any) => {
     },
   });
 
-  await middifiedHandler(event, {}, () => {
+  await middifiedHandler(event, {} as any, () => {
     console.log('did this work');
   });
 };
@@ -95,9 +94,9 @@ const sampleSkynetMessages = [
   },
 ];
 
-const sampleBadEvent = {
-  hello: 'world',
-};
+// const sampleBadEvent = {
+//   hello: 'world',
+// };
 
 const run = async () => {
   // try {

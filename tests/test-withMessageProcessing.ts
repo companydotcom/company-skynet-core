@@ -36,9 +36,9 @@ const test = async (event: any) => {
   };
 
   const middifiedHandler = middy(handler);
-  middifiedHandler.use(withMessageProcessing(coreSettings));
+  middifiedHandler.use(middlewareToTest[0](coreSettings));
 
-  await middifiedHandler(event, {}, () => {
+  await middifiedHandler(event, {} as any, () => {
     console.log('did this work');
   });
 };

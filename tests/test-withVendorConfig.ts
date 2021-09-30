@@ -1,7 +1,7 @@
 import withVendorConfig from '../src/middleware/withVendorConfig';
 import middy from '@middy/core';
 import AWS from 'aws-sdk';
-import { Options, getMiddyInternal, prepareMiddlewareDataForWorker } from '../src/middleware/sharedTypes';
+import { Options, getMiddyInternal } from '../src/middleware/sharedTypes';
 
 AWS.config.update({ region: process.env.region });
 
@@ -29,7 +29,7 @@ const test = async (event: any) => {
 
   const middifiedHandler = middy(handler);
   middifiedHandler.use({
-    after: async (request) => {
+    after: async () => {
       // put anything here to check whether post worker behaviors occurred
     },
   });
@@ -42,7 +42,7 @@ const test = async (event: any) => {
     },
   });
 
-  await middifiedHandler(event, {}, () => {
+  await middifiedHandler(event, {} as any, () => {
     console.log('did this work');
   });
 };
@@ -79,9 +79,9 @@ const sampleSkynetMessages = [
   },
 ];
 
-const sampleBadEvent = {
-  hello: 'world',
-};
+// const sampleBadEvent = {
+//   hello: 'world',
+// };
 
 const run = async () => {
   // try {

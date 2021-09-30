@@ -1,7 +1,7 @@
 import withCrmData from '../src/middleware/withCrmData';
 import middy from '@middy/core';
 import AWS from 'aws-sdk';
-import { Options, getMiddyInternal, prepareMiddlewareDataForWorker } from '../src/middleware/sharedTypes';
+import { Options } from '../src/middleware/sharedTypes';
 
 AWS.config.update({ region: process.env.region });
 
@@ -43,16 +43,16 @@ const test = async (event: any) => {
 
   const middifiedHandler = middy(handler);
   middifiedHandler.use({
-    after: async (request) => {
+    after: async () => {
       // put anything here to check whether post worker behaviors occurred
     },
   });
   middifiedHandler.use(middlewareToTest[0](coreSettings));
   middifiedHandler.use({
-    before: async (request) => {},
+    before: async () => {},
   });
 
-  await middifiedHandler(event, {}, () => {
+  await middifiedHandler(event, {} as any, () => {
     console.log('did this work');
   });
 };
@@ -88,10 +88,6 @@ const sampleSkynetMessages = [
     rcptHandle: undefined,
   },
 ];
-
-const sampleBadEvent = {
-  hello: 'world',
-};
 
 const run = async () => {
   // try {
