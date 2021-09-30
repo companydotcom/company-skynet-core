@@ -1,7 +1,7 @@
 import middy from '@middy/core';
-import { getInternal } from '@middy/util';
 import { SQSEvent, ScheduledEvent, SNSEvent } from 'aws-lambda';
 import { v4 as uuid } from 'uuid';
+import { getMiddyInternal } from './sharedTypes';
 
 import es from '../library/eventStream';
 
@@ -12,7 +12,6 @@ import {
   sendMsg as sendSqsMsg,
 } from '../library/queue';
 
-import { incrementUsedCount } from '../library/throttle';
 import { HandledSkynetMessage, RawEvent, SkynetMessage, Options } from './sharedTypes';
 
 const defaults = {
@@ -67,15 +66,12 @@ const handleSingle = async (request: middy.Request, options: Options) => {
     );
   }
   request.event = [sqsParser(request.event.Records[0])];
-
-  // TODO: Decide whether to keep this here or kick it out to throttle
-  await incrementUsedCount(options.AWS, options.service || '', 1);
 };
 
 const handleBulk = async (request: middy.Request, options: SettledOptions) => {
   // check internal for if an "availCap" has been set
   if (options.isBulk) {
-    const throttleResult = await getInternal(['availCap'], request);
+    const throttleResult = await getMiddyInternal(request, ['availCap']);
     let availCap = Math.min(
       options.maxMessagesPerInstance || 500,
       throttleResult?.availCap || options.maxMessagesPerInstance,
@@ -89,9 +85,6 @@ const handleBulk = async (request: middy.Request, options: SettledOptions) => {
       }`,
     );
     console.log(`bulkTransition: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
-
-    // TODO: Decide whether to keep this here or kick it out to throttle
-    await incrementUsedCount(options.AWS, options.service, messagesToProcess.length);
 
     request.event = messagesToProcess.map((m: SNSEvent) => sqsParser(m));
   }
@@ -123,7 +116,7 @@ function isSqsEvent(obj: any): obj is SQSEvent {
   return obj.Records !== undefined;
 }
 
-const createWithSqsHandling = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
+const withMessageProcessing = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
   const options = { ...defaults, ...opt } as SettledOptions;
 
   const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
@@ -138,6 +131,7 @@ const createWithSqsHandling = (opt: Options): middy.MiddlewareObj<RawEvent, [Han
 
   const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
     const { AWS, region, account, service } = options;
+
     const handledMessages = request.response;
     if (handledMessages) {
       await Promise.all(
@@ -198,4 +192,4 @@ const createWithSqsHandling = (opt: Options): middy.MiddlewareObj<RawEvent, [Han
   };
 };
 
-export default createWithSqsHandling;
+export default withMessageProcessing;

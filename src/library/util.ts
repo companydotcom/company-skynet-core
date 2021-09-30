@@ -1,6 +1,3 @@
-import { globalAgent } from 'http';
-import { camelCase } from 'lodash';
-
 /**
  * @description Attempt to JSON.parse input value. If parse fails, return original value.
  * @param {any} v

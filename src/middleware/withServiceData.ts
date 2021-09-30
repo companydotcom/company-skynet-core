@@ -1,8 +1,6 @@
-import { getInternal } from '@middy/util';
 import middy from '@middy/core';
-import { SQSEvent } from 'aws-lambda';
 import _get from 'lodash/get';
-import { addToEventContext, HandledSkynetMessage, Options, SkynetMessage } from './sharedTypes';
+import { addToEventContext, HandledSkynetMessage, Options, SkynetMessage, getMiddyInternal } from './sharedTypes';
 import { itemExists } from '../library/util';
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from '../library/dynamo';
 
@@ -62,76 +60,85 @@ const defaults = {
   service: '',
 };
 
-const createWithServiceDataStore = (opts = {}) => {
+const withServiceData = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
   const middlewareName = 'withServiceData';
   const options = { ...defaults, ...opts } as Options;
-  const serviceDataBefore: middy.MiddlewareFn<SQSEvent, any> = async (request): Promise<void> => {
-    Promise.all(
-      request.response.map(async (m: SkynetMessage) => {
+  const serviceDataBefore: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> = async (
+    request,
+  ): Promise<void> => {
+    await Promise.all(
+      request.event.map(async (m: SkynetMessage) => {
         const userId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
-        const accountId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
+        const accountId: string = _get(m, ['msgBody', 'context', 'user', 'accountId'], '');
 
-        const context = await getInternal([`user-${userId}`, `account-${accountId}`], request);
+        const context = await getMiddyInternal(request, [`user-${userId}`, `account-${accountId}`]);
+        console.log('here');
 
+        const userSD = await getUserServiceData(context[`user-${userId}`], options.service);
+        const accountSD = await getAccountServiceData(context[`account-${accountId}`], options.service);
         addToEventContext(request, m, middlewareName, {
-          serviceUserData: getUserServiceData(context[`user-${userId}`], options.service),
-          serviceAccountData: getAccountServiceData(context[`account-${accountId}`], options.service),
+          serviceUserData: userSD,
+          serviceAccountData: accountSD,
         });
       }),
     );
     // fetch serviceAccountData
   };
 
-  const serviceDataAfter: middy.MiddlewareFn<SQSEvent, any> = async (request): Promise<void> => {
+  const serviceDataAfter: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> = async (
+    request,
+  ): Promise<void> => {
     const { AWS, service } = options;
     // set changes to serviceUserData/serviceAccountData
-    Promise.all(
-      request.response.map(async (m: HandledSkynetMessage) => {
-        const userId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
-        const accountId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
+    if (request.response) {
+      Promise.all(
+        request.response.map(async (m: HandledSkynetMessage) => {
+          const userId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
+          const accountId: string = _get(m, ['msgBody', 'context', 'user', 'accountId'], '');
 
-        const { msgBody, workerResp } = m;
-        if (itemExists(workerResp, 'serviceAccountData')) {
-          if (typeof workerResp.serviceAccountData !== 'object') {
-            throw new Error('Service specific user account data should be an object');
-          }
-          if (accountId) {
-            const currAccData = await getCurrentAccountData(AWS, accountId);
-            if (!itemExists(currAccData, 'vendorData')) {
-              currAccData.vendorData = {};
+          const { workerResp } = m;
+          if (itemExists(workerResp, 'serviceAccountData')) {
+            if (typeof workerResp.serviceAccountData !== 'object') {
+              throw new Error('Service specific user account data should be an object');
             }
-            if (!itemExists(currAccData.vendorData, `${service}`)) {
-              currAccData.vendorData[`${service}`] = {};
+            if (accountId) {
+              const currAccData = await getCurrentAccountData(AWS, accountId);
+              if (!itemExists(currAccData, 'vendorData')) {
+                currAccData.vendorData = {};
+              }
+              if (!itemExists(currAccData.vendorData, `${service}`)) {
+                currAccData.vendorData[`${service}`] = {};
+              }
+              currAccData.vendorData[`${service}`] = {
+                ...currAccData.vendorData[`${service}`],
+                ...workerResp.serviceAccountData,
+              };
+              await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
             }
-            currAccData.vendorData[`${service}`] = {
-              ...currAccData.vendorData[`${service}`],
-              ...workerResp.serviceAccountData,
-            };
-            await batchPutIntoDynamoDb(AWS, [currAccData], 'Account');
           }
-        }
 
-        if (itemExists(workerResp, 'serviceUserData')) {
-          if (typeof workerResp.serviceUserData !== 'object') {
-            throw new Error('Service specific user data should be an object');
-          }
-          if (userId) {
-            const currUserData = await getCurrentUserData(AWS, userId);
-            if (!itemExists(currUserData, 'vendorData')) {
-              currUserData.vendorData = {};
+          if (itemExists(workerResp, 'serviceUserData')) {
+            if (typeof workerResp.serviceUserData !== 'object') {
+              throw new Error('Service specific user data should be an object');
             }
-            if (!itemExists(currUserData.vendorData, `${service}`)) {
-              currUserData.vendorData[`${service}`] = {};
+            if (userId) {
+              const currUserData = await getCurrentUserData(AWS, userId);
+              if (!itemExists(currUserData, 'vendorData')) {
+                currUserData.vendorData = {};
+              }
+              if (!itemExists(currUserData.vendorData, `${service}`)) {
+                currUserData.vendorData[`${service}`] = {};
+              }
+              currUserData.vendorData[`${service}`] = {
+                ...currUserData.vendorData[`${service}`],
+                ...workerResp.serviceUserData,
+              };
+              await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
             }
-            currUserData.vendorData[`${service}`] = {
-              ...currUserData.vendorData[`${service}`],
-              ...workerResp.serviceUserData,
-            };
-            await batchPutIntoDynamoDb(AWS, [currUserData], 'User');
           }
-        }
-      }),
-    );
+        }),
+      );
+    }
   };
 
   return {
@@ -140,4 +147,4 @@ const createWithServiceDataStore = (opts = {}) => {
   };
 };
 
-export default createWithServiceDataStore;
+export default withServiceData;

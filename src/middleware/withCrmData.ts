@@ -1,7 +1,6 @@
 import middy from '@middy/core';
-import { getInternal } from '@middy/util';
 import es from '../library/eventStream';
-import uuid from 'uuid/v4';
+import { v4 as uuid } from 'uuid';
 import { itemExists } from '../library/util';
 import { SkynetMessage, HandledSkynetMessage, Options } from './sharedTypes';
 
@@ -24,27 +23,32 @@ const createWithCrm = (opt: Options): middy.MiddlewareObj<[SkynetMessage], [Hand
               throw new Error('Data going to a CRM should be an object');
             }
             if (Object.keys(m.workerResp.crmData).length > 0) {
-              await es.publish(
-                AWS,
-                `arn:aws:sns:${region}:${account}:event-bus`,
-                {
-                  ...msgBody,
-                  payload: m.workerResp.crmData,
-                  metadata: {
-                    eventType: 'sendFields',
-                    dateCreated: Date.now(),
-                    operationType: 'update',
-                    invocationSource: service,
+              console.log('CRM data detected');
+              try {
+                await es.publish(
+                  AWS,
+                  `arn:aws:sns:${region}:${account}:event-bus`,
+                  {
+                    ...msgBody,
+                    payload: m.workerResp.crmData,
+                    metadata: {
+                      eventType: 'sendFields',
+                      dateCreated: Date.now(),
+                      operationType: 'update',
+                      invocationSource: service,
+                    },
                   },
-                },
-                {
-                  ...msgAttribs,
-                  status: 'trigger',
-                  eventType: 'crm',
-                  eventId: uuid(),
-                  emitter: service,
-                },
-              );
+                  {
+                    ...msgAttribs,
+                    status: 'trigger',
+                    eventType: 'crm',
+                    eventId: uuid(),
+                    emitter: service,
+                  },
+                );
+              } catch (err) {
+                console.log('Could not emit SNS', err);
+              }
             }
           }
         }),

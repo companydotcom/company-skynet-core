@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './src/index.js',
+  entry: './src/index.ts',
   devtool: 'inline-source-map',
   mode: 'production',
   module: {
@@ -19,5 +19,7 @@ module.exports = {
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
+    libraryTarget: 'umd',
+    globalObject: 'this',
   },
 };

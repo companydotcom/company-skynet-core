@@ -6,6 +6,7 @@ import { Options } from './sharedTypes';
 
 const createWithVendorContext = (options: Options): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
   const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> = async (request): Promise<void> => {
+    console.log(options.service);
     // Use ids to pull context
     request.internal.vendorConfig = fetchRecordsByQuery(options.AWS, {
       TableName: 'vendorConfig',

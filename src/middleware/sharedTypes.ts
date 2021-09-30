@@ -49,15 +49,15 @@ export interface HandledSkynetMessage extends SkynetMessage {
 
 export type RawEvent = SQSEvent | ScheduledEvent;
 
-type ThrottleLimits = {
-  second?: number;
-  minute?: number;
-  hour?: number;
-  day?: number;
-};
+// type ThrottleLimits = {
+//   second?: number;
+//   minute?: number;
+//   hour?: number;
+//   day?: number;
+// };
 
 export type ThrottleSettings = {
-  throttleLmts: ThrottleLimits;
+  throttleLmts: string;
   safeThrottleLimit: number;
   reserveCapForDirect: number;
   retryCntForCapacity: number;
@@ -111,7 +111,9 @@ export const addToEventContext = (
 
 export const prepareMiddlewareDataForWorker = async (request: middy.Request, message: SkynetMessage) => {
   const messageId = message.msgAttribs.eventId;
+  console.log(messageId, 'messageId');
   if (!request.internal[messageId]) {
+    console.log('no data stored for this message');
     return {};
   }
   const midsInUse = Object.keys(request.internal[messageId]);
@@ -119,15 +121,46 @@ export const prepareMiddlewareDataForWorker = async (request: middy.Request, mes
     const midData = request.internal[messageId][midName];
     const dataKeys = Object.keys(midData);
     dataKeys.forEach((key: string) => {
-      acc.hasOwnProperty(key);
       if (acc.hasOwnProperty(key)) {
         console.warn(
           `Middleware data key ${key} in middleware ${midName} collides with another middleware's data key.  This is not permitted`,
         );
       } else {
-        Object.defineProperty(acc, key, request.internal[messageId][midName][key]);
+        Object.assign(acc, { [key]: request.internal[messageId][midName][key] });
       }
     });
     return acc;
   }, {} as any);
+};
+
+export const setMiddyInternal = (request: middy.Request, key: string, value: any) => {
+  request.internal[key] = value;
+};
+
+// Internal Context
+export const getMiddyInternal = async (request: middy.Request, variables: Array<string>) => {
+  if (!variables || !request) return {};
+  let keys = [] as any[];
+  let values = [] as any[];
+  keys = variables;
+  const promises = [] as any[];
+  keys.forEach((internalKey) => {
+    let valuePromise = request.internal[internalKey];
+    promises.push(
+      valuePromise && valuePromise.then
+        ? valuePromise.catch((err: any) => ({
+            status: 'rejected',
+            reason: {
+              message: err,
+            },
+          }))
+        : valuePromise,
+    );
+  });
+  // ensure promise has resolved by the time it's needed
+  // If one of the promises throws it will bubble up to @middy/core
+  values = (await Promise.all(promises)) as any[];
+  const errors = values.filter((res: any) => res.status === 'rejected').map((res: any) => res.reason.message);
+  if (errors.length) throw new Error(JSON.stringify(errors));
+  return keys.reduce((obj, key, index) => ({ ...obj, [key]: values[index] }), {});
 };

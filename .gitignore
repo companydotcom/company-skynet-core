@@ -10,3 +10,7 @@ jspm_packages
 
 .eslintcache
 .husky
+.env
+
+dist/
+lib/

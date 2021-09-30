@@ -1,7 +1,6 @@
 import middy from '@middy/core';
-import { getInternal } from '@middy/util';
 import _get from 'lodash/get';
-import { SkynetMessage, HandledSkynetMessage, addToEventContext, Options } from './sharedTypes';
+import { SkynetMessage, HandledSkynetMessage, addToEventContext, Options, getMiddyInternal } from './sharedTypes';
 import {
   transformMadsToReadFormat,
   evaluateMadsReadAccess,
@@ -41,27 +40,45 @@ const defaults = {
   service: '',
 };
 
-const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  const options = { ...opts, ...defaults };
+const createWithMads = (opts: Options): middy.MiddlewareObj<SkynetMessage[], HandledSkynetMessage[]> => {
+  const options = { ...defaults, ...opts };
   const middlewareName = 'mads';
   const internalMadsCache = {} as object;
   const { AWS, service } = options;
 
-  const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> = async (request): Promise<void> => {
+  const before: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> = async (request): Promise<void> => {
     const { service, AWS } = options;
-    Promise.all(
+    await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
         const userId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
-        const accountId: string = _get(m, ['msgBody', 'context', 'user', 'userId'], '');
+        const accountId: string = _get(m, ['msgBody', 'context', 'user', 'accountId'], '');
 
         const [context, internalAccountMads, internalUserMads] = await Promise.all([
-          getInternal([`user-${userId}`, `account-${accountId}`], request),
+          getMiddyInternal(request, [`user-${userId}`, `account-${accountId}`]),
           getInternalAccountMads(AWS, accountId),
           getInternalUserMads(AWS, userId),
         ]);
 
-        Object.defineProperty(internalMadsCache, userId, internalUserMads || {});
-        Object.defineProperty(internalMadsCache, accountId, internalAccountMads || {});
+        Object.assign(
+          internalMadsCache,
+          internalUserMads
+            ? {
+                [userId]: internalUserMads,
+              }
+            : {
+                [userId]: { userId },
+              },
+        );
+        Object.assign(
+          internalMadsCache,
+          internalAccountMads
+            ? {
+                [accountId]: internalAccountMads,
+              }
+            : {
+                [accountId]: { accountId },
+              },
+        );
 
         const accountGlobalMicroAppData = _get(context, `account-${accountId}.globalMicroAppData`, null);
         const userGlobalMicroAppData = _get(context, `user-${userId}.globalMicroAppData`, null);
@@ -89,8 +106,9 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
           user: {} as object,
           account: {} as object,
         };
-        const serviceUserMads = _get(internalUserMads, service);
-        const serviceAccountMads = _get(internalAccountMads, service);
+        const serviceUserMads = { [service]: _get(internalUserMads, service) };
+        const serviceAccountMads = { [service]: _get(internalAccountMads, service) };
+
         if (serviceUserMads) {
           internalMicroAppData.user = transformMadsToReadFormat(serviceUserMads);
         }
@@ -109,9 +127,8 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
   const processWorkerResponseMads = async (m: HandledSkynetMessage, request: middy.Request) => {
     const { msgBody, workerResp } = m;
     const userId: string = _get(msgBody, ['context', 'user', 'userId'], '');
-    const accountId: string = _get(msgBody, ['context', 'user', 'userId'], '');
-
-    const [context] = await Promise.all([getInternal([`user-${userId}`, `account-${accountId}`], request)]);
+    const accountId: string = _get(msgBody, ['context', 'user', 'accountId'], '');
+    const context = await getMiddyInternal(request, [`user-${userId}`, `account-${accountId}`]);
 
     const userData = _get(context, `user-${userId}`);
     const accData = _get(context, `account-${accountId}`);
@@ -120,14 +137,20 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
     const internalAccountMads = _get(internalMadsCache, accountId, {});
     const internalUserMads = _get(internalMadsCache, userId, {});
 
-    const accountGlobalMicroAppData = _get(context, `account-${accountId}.globalMicroAppData`, {});
-    const userGlobalMicroAppData = _get(context, `user-${userId}.globalMicroAppData`, {});
+    const account = _get(context, `account-${accountId}`, {});
+    const user = _get(context, `user-${userId}`, {});
 
-    if (!accountGlobalMicroAppData.hasOwnProperty(service)) {
-      Object.defineProperty(accountGlobalMicroAppData, service, []);
+    if (!account.hasOwnProperty('globalMicroAppData')) {
+      Object.assign(account, { globalMicroAppData: { [service]: [] } });
     }
-    if (!userGlobalMicroAppData.hasOwnProperty(service)) {
-      Object.defineProperty(userGlobalMicroAppData, service, []);
+    if (!user.hasOwnProperty('globalMicroAppData')) {
+      Object.assign(user, { globalMicroAppData: { [service]: [] } });
+    }
+    if (!account.globalMicroAppData.hasOwnProperty(service)) {
+      Object.assign(account.globalMicroAppData, { [service]: [] });
+    }
+    if (!user.globalMicroAppData.hasOwnProperty(service)) {
+      Object.assign(user.globalMicroAppData, { [service]: [] });
     }
 
     if (!internalUserMads.hasOwnProperty(service)) {
@@ -202,7 +225,6 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
 
       accData.globalMicroAppData[service] = globalMads;
       internalAccountMads[service] = internalMads;
-
       Promise.all([
         batchPutIntoDynamoDb(AWS, [accData], 'Account'),
         batchPutIntoDynamoDb(AWS, [internalAccountMads], 'internal-account-mads'),
@@ -210,7 +232,7 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<[SkynetMessage], [Ha
     }
   };
 
-  const after: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> = async (request): Promise<void> => {
+  const after: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> = async (request): Promise<void> => {
     // set changes to serviceUserData/serviceAccountData
     if (request.response) {
       await Promise.all(request.response.map((m) => processWorkerResponseMads(m, request)));

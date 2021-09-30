@@ -1,6 +1,5 @@
 import middy from '@middy/core';
-import { getInternal } from '@middy/util';
-import { HandledSkynetMessage, RawEvent, Options, ThrottleSettings } from './sharedTypes';
+import { HandledSkynetMessage, RawEvent, Options, ThrottleSettings, getMiddyInternal } from './sharedTypes';
 
 import { getAvailableCallsThisSec as getAvailableCapacity, incrementUsedCount } from '../library/throttle';
 
@@ -42,7 +41,7 @@ const createWithThrottling = (opt: Options): middy.MiddlewareObj<RawEvent, [Hand
       console.log('No Capacity available for requests');
       return;
     }
-    request.internal.availCap = availCap;
+    request.internal.availCap = options.isBulk ? availCap : 1;
     await incrementUsedCount(options.AWS, options.service, options.isBulk ? availCap : 1);
   };
 
@@ -51,21 +50,25 @@ const createWithThrottling = (opt: Options): middy.MiddlewareObj<RawEvent, [Hand
   const throttleAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
     // if request contains key to adjust used capacity
     // - adjust call count
-    const data = await getInternal(['messagesToProcess', 'availCap'], request);
-    if (data.availCap && data.messagesToProcess) {
+    const data = await getMiddyInternal(request, ['availCap']);
+    if (data.availCap) {
+      let processedCount = 0;
+      if (request.response && request.response.length) {
+        processedCount = request.response.length;
+      }
       // TODO: consider implications of this "post operation adjustment" on esp. per Second throttling - however since bulk operations only run every 5 minutes it should be acceptable to not do a "pre-operation" update - meaning that this number doesn't need to be negative.  (of course the "perSecond" has never been truly accurate).  This being given that the "reservedCapForDirect" is high enough as well as the "max usage" value (whatever its called)
-
-      await incrementUsedCount(options.AWS, options.service, data.messagesToProcess.length - data.availCap);
+      await incrementUsedCount(options.AWS, options.service, processedCount - data.availCap);
     }
   };
 
   const onError = () => {
-    // adjust availCap.  check to see if request.response exists, if not, no throughput was used
+    // TODO: adjust availCap.  check to see if request.response exists, if not, no throughput was used
   };
 
   return {
     before: throttleBefore,
     after: throttleAfter,
+    onError,
   };
 };
 

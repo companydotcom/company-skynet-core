@@ -1,5 +1,4 @@
 import middy from '@middy/core';
-import { getInternal } from '@middy/util';
 import { neverThrowError } from './library/util';
 import withMessageProcessing from './middleware/withMessageProcessing';
 import withServiceData from './middleware/withMessageProcessing';
@@ -11,7 +10,9 @@ import {
   SkynetMessage,
   AllowableConfigKeys,
   Options,
+  addToEventContext,
   prepareMiddlewareDataForWorker,
+  getMiddyInternal,
 } from './middleware/sharedTypes';
 
 import { handler as gpH } from './handlers/getPostHttp';
@@ -31,14 +32,14 @@ const createTailoredOptions = (
   );
 };
 
-export const useSkynet = async (
+export default async (
   AWS: any,
   skynetConfig: CoreSkynetConfig,
   worker: Function,
   additionalMiddleware: [(opt: Options) => middy.MiddlewareObj],
 ) => {
   let handler = middy(async (request) => {
-    const data = await getInternal(['vendorConfig'], request);
+    const data = await getMiddyInternal(request, ['vendorConfig']);
     return Promise.all(
       // opportunity to adjust call signature of the worker to best suit this approach
       request.event.map((m: SkynetMessage) =>
@@ -141,3 +142,7 @@ export const setupDatabase = async (AWS: any, d: any, s: string) => {
  */
 export const httpReqHandler = async (AWS: any, r: string, s: string, a: string, b: any, c: any) =>
   gpH(AWS, r, s, a, b, c);
+
+export const utils = {
+  addToEventContext,
+};

@@ -2,30 +2,29 @@
   "compilerOptions": {
     "lib": ["es2017"],
     "removeComments": true,
+    "module": "commonjs",
     "moduleResolution": "node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "sourceMap": true,
-    "target": "es2017",
+    "target": "es5",
     "outDir": "lib",
     "strict": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true
   },
   "include": [
     "./**/*.ts",
-    "src/index.js",
-    "src/library/util.js",
-    "src/library/throttle.js",
-    "src/library/queue.js",
-    "src/library/eventStream.js",
+    "src/index.ts",
+    "src/library/util.ts",
+    "src/library/throttle.ts",
+    "src/library/queue.ts",
+    "src/library/eventStream.ts",
     "src/library/dynamo.ts",
     "dist/index.js",
-    "src/handlers/webhook.js",
     "src/handlers/setupDatabase.ts",
-    "src/handlers/getPostHttp.s",
-    "src/handlers/fetch.js",
-    "src/handlers/bulkTransition.js",
-    "src/handlers/bulkFetch.js"
+    "src/handlers/getPostHttp.ts",
+    "tests/*.ts",
   ],
   "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*"]
 }

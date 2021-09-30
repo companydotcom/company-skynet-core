@@ -1,7 +1,7 @@
 import middy from '@middy/core';
 
 import { HandledSkynetMessage, SkynetMessage, Options } from './sharedTypes';
-import { fetchRecordsByQuery } from '../library/dynamo.js';
+import { fetchRecordsByQuery } from '../library/dynamo';
 
 const defaults = {
   region: 'us-east-1',
@@ -44,11 +44,13 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
 const createWithContextPrep = (opt: Options): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
   const options = { ...defaults, ...opt };
   const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> = async (request): Promise<void> => {
-    request.event.map((m) => {
+    request.event.map(async (m) => {
       const userId = m.msgBody.context.user.userId;
       request.internal[`user-${userId}`] = getCurrentUserData(options.AWS, userId);
       const accountId = m.msgBody.context.user.accountId;
-      request.internal[`account-${accountId}`] = getCurrentAccountData(options.AWS, accountId);
+      const account = getCurrentAccountData(options.AWS, accountId);
+      request.internal[`account-${accountId}`] = account;
+      m.msgBody.context.user.account = account;
     });
   };
 

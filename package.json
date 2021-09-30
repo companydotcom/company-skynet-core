@@ -1,11 +1,11 @@
 {
   "name": "@companydotcom/company-skynet-core",
-  "version": "2.0.0-alpha.0",
+  "version": "2.0.0-alpha.2",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
   "scripts": {
     "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "lint": "eslint . --ext js,ts --cache --fix",
     "prettier": "prettier --list-different './**/*.{js,ts}'",
     "typecheck": "tsc --noEmit",
@@ -18,8 +18,8 @@
   ],
   "devDependencies": {
     "@babel/cli": "^7.4.4",
-    "@babel/core": "^7.4.5",
-    "@babel/preset-env": "^7.4.5",
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.6",
     "@types/aws-lambda": "^8.10.83",
     "@types/lodash": "^4.14.168",
     "@types/node": "^10.12.18",
@@ -38,11 +38,14 @@
     "webpack-node-externals": "^1.7.2"
   },
   "dependencies": {
+    "@babel/preset-typescript": "^7.15.0",
     "@middy/core": "^2.5.1",
     "@middy/util": "^2.5.1",
+    "@types/jest": "^27.0.2",
     "@typescript-eslint/eslint-plugin": "^4.19.0",
     "@typescript-eslint/parser": "^4.19.0",
     "aws-sdk": "^2.875.0",
+    "babel-jest": "^24.9.0",
     "deep-parse-json": "^1.0.1",
     "eslint": "^7.22.0",
     "eslint-config-prettier": "^8.1.0",
