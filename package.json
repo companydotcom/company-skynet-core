@@ -6,7 +6,7 @@
   "scripts": {
     "build": "webpack",
     "test": "jest",
-    "lint": "eslint . --ext js,ts --cache --fix",
+    "lint": "eslint . --ext js,ts --fix",
     "prettier": "prettier --list-different './**/*.{js,ts}'",
     "postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
