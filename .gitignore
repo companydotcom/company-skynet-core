@@ -6,7 +6,6 @@ jspm_packages
 .webpack
 
 .eslintcache
-.husky
 
 dist/
 yarn-error.log

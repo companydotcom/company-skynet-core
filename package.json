@@ -3,7 +3,6 @@
   "version": "2.0.0-alpha.3",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
-  "private": false,
   "scripts": {
     "build": "webpack",
     "test": "jest",
@@ -12,9 +11,6 @@
     "postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable"
-  },
-  "hooks": {
-    "pre-commit": "yarn prettier && yarn lint"
   },
   "author": "Company.com",
   "license": "ISC",
