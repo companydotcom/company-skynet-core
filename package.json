@@ -3,29 +3,24 @@
   "version": "2.0.0-alpha.3",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
+  "private": false,
   "scripts": {
     "build": "webpack",
     "test": "jest",
     "lint": "eslint . --ext js,ts --cache --fix",
-    "prettier": "prettier --list-different './**/*.{js,ts}'"
+    "prettier": "prettier --list-different './**/*.{js,ts}'",
+    "postinstall": "husky install",
+    "prepublishOnly": "pinst --disable",
+    "postpublish": "pinst --enable"
+  },
+  "hooks": {
+    "pre-commit": "yarn prettier && yarn lint"
   },
   "author": "Company.com",
   "license": "ISC",
   "files": [
     "dist/index.js"
   ],
-  "lint-staged": {
-    "*.{ts,js}": [
-      "prettier --write",
-      "eslint --fix",
-      "yarn lint"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
     "@babel/core": "^7.15.5",
@@ -41,9 +36,10 @@
     "eslint": "^7.22.0",
     "eslint-config-prettier": "^8.1.0",
     "eslint-plugin-prettier": "^3.3.1",
-    "husky": "^7.0.2",
+    "husky": "^7.0.0",
     "jest": "^24.8.0",
     "path": "^0.12.7",
+    "pinst": "^2.0.0",
     "prettier": "^2.2.1",
     "serverless-webpack": "^5.3.0",
     "ts-loader": "^5.3.3",
