@@ -72,7 +72,7 @@ const handleBulk = async (request: middy.Request, options: SettledOptions) => {
   // check internal for if an "availCap" has been set
   if (options.isBulk) {
     const throttleResult = await getMiddyInternal(request, ['availCap']);
-    let availCap = Math.min(
+    const availCap = Math.min(
       options.maxMessagesPerInstance || 500,
       throttleResult?.availCap || options.maxMessagesPerInstance,
     );

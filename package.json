@@ -16,6 +16,17 @@
   "files": [
     "dist/index.js"
   ],
+  "lint-staged": {
+    "*.{ts,js,tsx,jsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
   "devDependencies": {
     "@babel/cli": "^7.4.4",
     "@babel/core": "^7.15.5",

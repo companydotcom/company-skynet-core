@@ -38,7 +38,7 @@ export default async (
   worker: Function,
   additionalMiddleware: [(opt: Options) => middy.MiddlewareObj],
 ) => {
-  let handler = middy(async (request) => {
+  const handler = middy(async (request) => {
     const data = await getMiddyInternal(request, ['vendorConfig']);
     return Promise.all(
       // opportunity to adjust call signature of the worker to best suit this approach

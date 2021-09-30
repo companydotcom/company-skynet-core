@@ -102,7 +102,7 @@ const createWithMads = (opts: Options): middy.MiddlewareObj<SkynetMessage[], Han
         // * only for the internal Micro Application
         // * Transform internal User MADS
         // * Transform internal Account MADS
-        let internalMicroAppData = {
+        const internalMicroAppData = {
           user: {} as object,
           account: {} as object,
         };

@@ -156,7 +156,7 @@ export const itemExists = (obj: any, param: string) =>
  * @abstract docs: https://bit.ly/3kdY2w9
  */
 export const evaluateMadsReadAccess = (globalMicroAppData: any, service: string) => {
-  let result = {} as any;
+  const result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
   // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
@@ -182,7 +182,7 @@ export const evaluateMadsReadAccess = (globalMicroAppData: any, service: string)
  * @abstract docs: https://bit.ly/3kdY2w9
  */
 export const transformMadsToReadFormat = (mads: any) => {
-  let result = {} as any;
+  const result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
   // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])

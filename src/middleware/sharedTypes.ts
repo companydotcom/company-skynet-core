@@ -145,7 +145,7 @@ export const getMiddyInternal = async (request: middy.Request, variables: Array<
   keys = variables;
   const promises = [] as any[];
   keys.forEach((internalKey) => {
-    let valuePromise = request.internal[internalKey];
+    const valuePromise = request.internal[internalKey];
     promises.push(
       valuePromise && valuePromise.then
         ? valuePromise.catch((err: any) => ({
