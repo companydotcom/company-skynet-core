@@ -7,9 +7,7 @@
     "build": "webpack",
     "test": "jest",
     "lint": "eslint . --ext js,ts --cache --fix",
-    "prettier": "prettier --list-different './**/*.{js,ts}'",
-    "typecheck": "tsc --noEmit",
-    "prepare": "husky install"
+    "prettier": "prettier --list-different './**/*.{js,ts}'"
   },
   "author": "Company.com",
   "license": "ISC",
@@ -17,9 +15,10 @@
     "dist/index.js"
   ],
   "lint-staged": {
-    "*.{ts,js,tsx,jsx}": [
+    "*.{ts,js}": [
       "prettier --write",
-      "eslint --fix"
+      "eslint --fix",
+      "yarn lint"
     ]
   },
   "husky": {
