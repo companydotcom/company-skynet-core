@@ -1,6 +1,6 @@
 {
   "name": "@companydotcom/company-skynet-core",
-  "version": "2.0.0-alpha.4",
+  "version": "2.0.0-alpha.5",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "test": "jest",
     "lint": "eslint . --ext js,ts --fix",
     "prettier": "prettier --list-different './**/*.{js,ts}'",
-    "postinstall": "husky install",
+    "_postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
     "dev": "webpack"
@@ -53,10 +53,9 @@
     "aws-sdk": "^2.875.0",
     "babel-jest": "^24.9.0",
     "deep-parse-json": "^1.0.1",
-    "lodash": "^4.17.21",
     "lodash.get": "^4.4.2",
     "source-map-support": "^0.5.19",
-    "uuid": "^8.3.2"
+    "uuid": "^3.0.0"
   },
   "packageManager": "yarn@3.0.2"
 }

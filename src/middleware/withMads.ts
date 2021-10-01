@@ -13,7 +13,7 @@ import {
   filterMadsByReadAccess,
   addToEventContext,
   getMiddyInternal,
-} from "../library/util.js";
+} from "../library/util";
 import { batchPutIntoDynamoDb, fetchRecordsByQuery } from "../library/dynamo";
 
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
@@ -48,12 +48,15 @@ const createWithMads = (
   opts: Options
 ): middy.MiddlewareObj<SkynetMessage[], HandledSkynetMessage[]> => {
   const options = { ...defaults, ...opts };
-  const middlewareName = "mads";
+  const middlewareName = "withMads";
   const internalMadsCache = {} as any;
   const { AWS, service } = options;
 
   const before: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("before", middlewareName);
+      }
       const { service, AWS } = options;
       await Promise.all(
         request.event.map(async (m: SkynetMessage) => {
@@ -309,6 +312,9 @@ const createWithMads = (
 
   const after: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("after", middlewareName);
+      }
       // set changes to serviceUserData/serviceAccountData
       if (request.response) {
         await Promise.all(

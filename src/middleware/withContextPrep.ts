@@ -48,16 +48,25 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
 const createWithContextPrep = (
   opt: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
+  const middlewareName = "withContextPrep";
   const options = { ...defaults, ...opt };
   const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("before", middlewareName);
+      }
       request.event.map(async (m) => {
         const userId = m.msgBody.context.user.userId;
+        const accountId = m.msgBody.context.user.accountId;
+        if (!userId || !accountId) {
+          throw new Error(
+            'Messages using "withContextPrep" must include a userId and accountId on the context.user object'
+          );
+        }
         request.internal[`user-${userId}`] = getCurrentUserData(
           options.AWS,
           userId
         );
-        const accountId = m.msgBody.context.user.accountId;
         const account = getCurrentAccountData(options.AWS, accountId);
         request.internal[`account-${accountId}`] = account;
         m.msgBody.context.user.account = account;

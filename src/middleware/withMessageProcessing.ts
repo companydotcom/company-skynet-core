@@ -42,6 +42,7 @@ type SettledOptions = {
   account: string;
   AWS?: any;
   maxMessagesPerInstance: number;
+  debugMode?: boolean;
 };
 
 // TODO: move this out to "withExtraStatus"
@@ -136,10 +137,14 @@ function isSqsEvent(obj: any): obj is SQSEvent {
 const withMessageProcessing = (
   opt: Options
 ): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
+  const middlewareName = "withMessageProcessing";
   const options = { ...defaults, ...opt } as SettledOptions;
 
   const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("before", middlewareName);
+      }
       if (isScheduledEvent(request.event) && options.isBulk) {
         await handleBulk(request, options);
       } else if (isSqsEvent(request.event)) {
@@ -152,6 +157,9 @@ const withMessageProcessing = (
   const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
     request
   ): Promise<void> => {
+    if (options.debugMode) {
+      console.log("after", middlewareName);
+    }
     const { AWS, region, account, service } = options;
 
     const handledMessages = request.response;

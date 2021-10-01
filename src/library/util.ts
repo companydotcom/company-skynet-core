@@ -266,7 +266,6 @@ export const prepareMiddlewareDataForWorker = async (
   message: SkynetMessage
 ) => {
   const messageId = message.msgAttribs.eventId;
-  console.log(messageId, "messageId");
   if (!request.internal[messageId]) {
     console.log("no data stored for this message");
     return {};
@@ -318,7 +317,10 @@ export const getMiddyInternal = async (
               message: err,
             },
           }))
-        : valuePromise
+        : valuePromise || {
+            status: "rejected",
+            reason: { message: "value did not exist" },
+          }
     );
   });
   // ensure promise has resolved by the time it's needed

@@ -32,16 +32,21 @@ type SettledOptions = {
   AWS?: any;
   maxMessagesPerInstance: number;
   throttleOptions: ThrottleSettings;
+  debugMode: boolean;
 };
 
 const createWithThrottling = (
   opt: Options
 ): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
+  const middlewareName = "withThottling";
   const options = { ...defaults, ...opt } as SettledOptions;
 
   // REQUEST HAS "event" "context" "response" and "error" keys
   const throttleBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("before", middlewareName);
+      }
       // fetch callCount records from dynamo
       // compare to options ThrottleLmts
       // set availCap to `internal`
@@ -71,6 +76,9 @@ const createWithThrottling = (
 
   const throttleAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("after", middlewareName);
+      }
       // if request contains key to adjust used capacity
       // - adjust call count
       const data = await getMiddyInternal(request, ["availCap"]);

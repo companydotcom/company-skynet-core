@@ -83,6 +83,9 @@ const withServiceData = (
     SkynetMessage[],
     HandledSkynetMessage[]
   > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log("before", middlewareName);
+    }
     await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
         const userId: string = _get(
@@ -100,7 +103,6 @@ const withServiceData = (
           `user-${userId}`,
           `account-${accountId}`,
         ]);
-        console.log("here");
 
         const userSD = await getUserServiceData(
           context[`user-${userId}`],
@@ -123,11 +125,15 @@ const withServiceData = (
     SkynetMessage[],
     HandledSkynetMessage[]
   > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log("after", middlewareName);
+    }
     const { AWS, service } = options;
     // set changes to serviceUserData/serviceAccountData
     if (request.response) {
-      Promise.all(
+      await Promise.all(
         request.response.map(async (m: HandledSkynetMessage) => {
+          let promises = [] as any[];
           const userId: string = _get(
             m,
             ["msgBody", "context", "user", "userId"],
@@ -158,7 +164,9 @@ const withServiceData = (
                 ...currAccData.vendorData[`${service}`],
                 ...workerResp.serviceAccountData,
               };
-              await batchPutIntoDynamoDb(AWS, [currAccData], "Account");
+              promises.push(
+                batchPutIntoDynamoDb(AWS, [currAccData], "Account")
+              );
             }
           }
 
@@ -178,9 +186,11 @@ const withServiceData = (
                 ...currUserData.vendorData[`${service}`],
                 ...workerResp.serviceUserData,
               };
-              await batchPutIntoDynamoDb(AWS, [currUserData], "User");
+
+              promises.push(batchPutIntoDynamoDb(AWS, [currUserData], "User"));
             }
           }
+          await promises;
         })
       );
     }

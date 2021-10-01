@@ -1,8 +1,8 @@
 import withContextPrep from "../src/middleware/withContextPrep";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import { Options, getMiddyInternal } from "../src/library/sharedTypes";
-
+import { Options } from "../src/library/sharedTypes";
+import { getMiddyInternal } from "../src/library/util";
 AWS.config.update({ region: process.env.region });
 
 const userId = "60ee01f8885a9700717e8d8e";

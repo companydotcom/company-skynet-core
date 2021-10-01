@@ -1,4 +1,5 @@
 import { SQSEvent, ScheduledEvent } from "aws-lambda";
+import { Worker } from "cluster";
 
 export type Context = {
   user: any;
@@ -36,6 +37,13 @@ type MessageAttributes = {
   eventType: string;
 };
 
+type WorkerResp = {
+  status: string;
+  res: any;
+  error: Error | null;
+  [key: string]: any;
+};
+
 export interface SkynetMessage {
   msgBody: MessageBody;
   msgAttribs: MessageAttributes;
@@ -43,7 +51,7 @@ export interface SkynetMessage {
 }
 
 export interface HandledSkynetMessage extends SkynetMessage {
-  workerResp: any;
+  workerResp: WorkerResp;
 }
 
 export type RawEvent = SQSEvent | ScheduledEvent;
@@ -71,6 +79,7 @@ export type Options = {
   AWS?: any;
   maxMessagesPerInstance?: number;
   throttleOptions?: ThrottleSettings;
+  debugMode?: boolean;
 };
 
 export interface CoreSkynetConfig {
@@ -82,6 +91,8 @@ export interface CoreSkynetConfig {
   useThrottling?: string;
   throttleOptions?: ThrottleSettings;
   maxMessagesPerInstance?: number;
+  debugMode?: boolean;
+  useMads?: boolean;
 }
 
 export type AllowableConfigKeys =
@@ -92,4 +103,15 @@ export type AllowableConfigKeys =
   | "account"
   | "useThrottling"
   | "throttleOptions"
-  | "maxMessagesPerInstance";
+  | "maxMessagesPerInstance"
+  | "debugMode"
+  | "useMads";
+
+export type SkynetWorkerInterface = {
+  message: MessageBody;
+  attributes: MessageAttributes;
+  rcptHandle?: any;
+  serviceConfigData?: any;
+  workerResp: WorkerResp;
+  [key: string]: any;
+};

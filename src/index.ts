@@ -1,15 +1,13 @@
 import middy from "@middy/core";
-import {
-  neverThrowError,
-  addToEventContext,
-  prepareMiddlewareDataForWorker,
-  getMiddyInternal,
-} from "./library/util";
+import { neverThrowError, addToEventContext } from "./library/util";
 import withMessageProcessing from "./middleware/withMessageProcessing";
-import withServiceData from "./middleware/withMessageProcessing";
+import withServiceData from "./middleware/withServiceData";
 import withThrottling from "./middleware/withThrottling";
 import withVendorConfig from "./middleware/withVendorConfig";
 import withContextPrep from "./middleware/withContextPrep";
+import withCrmData from "./middleware/withCrmData";
+import withMads from "./middleware/withMads";
+import withPrivacyScreen from "./middleware/withPrivacyScreen";
 import {
   CoreSkynetConfig,
   SkynetMessage,
@@ -34,29 +32,20 @@ const createTailoredOptions = (
   );
 };
 
-export default async (
+export const useSkynet = (
   AWS: any,
   skynetConfig: CoreSkynetConfig,
   worker: (params: any) => any,
   additionalMiddleware: [(opt: Options) => middy.MiddlewareObj]
 ) => {
-  const handler = middy(async (request) => {
-    const data = await getMiddyInternal(request, ["vendorConfig"]);
+  const handler = middy(async (event) => {
     return Promise.all(
       // opportunity to adjust call signature of the worker to best suit this approach
-      request.event.map((m: SkynetMessage) =>
-        neverThrowError(
-          {
-            message: m.msgBody,
-            attributes: m.msgAttribs,
-            serviceConfigData: data.vendorConfig,
-            ...prepareMiddlewareDataForWorker(request, m),
-          },
-          worker
-        ).then((workerResp: any) => {
+      event.map((m: SkynetMessage) =>
+        neverThrowError(m, worker).then((result: any) => {
           return {
-            ...m,
-            workerResp,
+            ...result,
+            ...result.params,
           };
         })
       )
@@ -76,16 +65,22 @@ export default async (
               "maxMessagesPerInstance",
               "region",
               "account",
+              "debugMode",
             ],
             skynetConfig,
             AWS
           )
         ),
-        withVendorConfig(createTailoredOptions(["service"], skynetConfig, AWS)),
+        withVendorConfig(
+          createTailoredOptions(["service", "debugMode"], skynetConfig, AWS)
+        ),
+        withPrivacyScreen(
+          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+        ),
         ...additionalMiddleware.map((mid) =>
           mid(
             createTailoredOptions(
-              ["service", "eventType", "isBulk"],
+              ["service", "eventType", "isBulk", "debugMode"],
               skynetConfig,
               false
             )
@@ -105,24 +100,51 @@ export default async (
               "maxMessagesPerInstance",
               "region",
               "account",
+              "debugMode",
             ],
             skynetConfig,
             AWS
           )
         ),
-        withContextPrep(createTailoredOptions([], skynetConfig, AWS)),
-        withVendorConfig(createTailoredOptions(["service"], skynetConfig, AWS)),
-        withServiceData(
-          createTailoredOptions(
-            ["service", "region", "account"],
-            skynetConfig,
-            AWS
-          )
-        ), // will now be MADS
+        withContextPrep(
+          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+        ),
+        withVendorConfig(
+          createTailoredOptions(["service", "debugMode"], skynetConfig, AWS)
+        ),
+        ...(skynetConfig.useMads
+          ? [
+              withServiceData(
+                createTailoredOptions(
+                  ["service", "region", "account", "debugMode"],
+                  skynetConfig,
+                  AWS
+                )
+              ),
+              withMads(
+                createTailoredOptions(
+                  ["service", "region", "account", "debugMode"],
+                  skynetConfig,
+                  AWS
+                )
+              ),
+            ]
+          : [
+              withServiceData(
+                createTailoredOptions(
+                  ["service", "region", "account", "debugMode"],
+                  skynetConfig,
+                  AWS
+                )
+              ),
+            ]), // eventually swap for Mads as default
+        withPrivacyScreen(
+          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+        ),
         ...additionalMiddleware.map((mid) =>
           mid(
             createTailoredOptions(
-              ["service", "eventType", "isBulk"],
+              ["service", "eventType", "isBulk", "debugMode"],
               skynetConfig,
               false
             )
@@ -196,4 +218,8 @@ export const httpReqHandler = async (
 
 export const utils = {
   addToEventContext,
+};
+
+export const middleware = {
+  withCrmData,
 };

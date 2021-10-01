@@ -7,12 +7,16 @@ import {
 
 import { fetchRecordsByQuery } from "../library/dynamo";
 
-const createWithVendorContext = (
+const createWithVendorConfig = (
   options: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
+  const middlewareName = "withVendorConfig";
   const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> =
     async (request): Promise<void> => {
-      console.log(options.service);
+      if (options.debugMode) {
+        console.log("before", middlewareName);
+      }
+      console.log("Service name:", options.service);
       // Use ids to pull context
       request.internal.vendorConfig = fetchRecordsByQuery(options.AWS, {
         TableName: "vendorConfig",
@@ -29,4 +33,4 @@ const createWithVendorContext = (
   };
 };
 
-export default createWithVendorContext;
+export default createWithVendorConfig;

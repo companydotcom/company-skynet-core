@@ -15,10 +15,14 @@ const defaults = {
 const createWithCrm = (
   opt: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
+  const middlewareName = "withCrmData";
   const options = { ...defaults, ...opt };
 
   const after: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> =
     async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log("after", middlewareName);
+      }
       const { AWS, service, region, account } = options;
       // set changes to serviceUserData/serviceAccountData
       if (request.response) {
