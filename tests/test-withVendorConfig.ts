@@ -1,7 +1,9 @@
 import withVendorConfig from "../src/middleware/withVendorConfig";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import { Options, getMiddyInternal } from "../src/middleware/sharedTypes";
+import { Options } from "../src/library/sharedTypes";
+
+import { getMiddyInternal } from "../src/library/util";
 
 AWS.config.update({ region: process.env.region });
 

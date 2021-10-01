@@ -1,11 +1,9 @@
 import withServiceData from "../src/middleware/withServiceData";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import {
-  Options,
-  prepareMiddlewareDataForWorker,
-} from "../src/middleware/sharedTypes";
+import { Options } from "../src/library/sharedTypes";
 import createWithContextPrep from "../src/middleware/withContextPrep";
+import { prepareMiddlewareDataForWorker } from "../src/library/util";
 
 AWS.config.update({ region: process.env.region });
 

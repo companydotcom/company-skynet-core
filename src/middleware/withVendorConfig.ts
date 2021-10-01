@@ -1,8 +1,11 @@
 import middy from "@middy/core";
-import { SkynetMessage, HandledSkynetMessage } from "./sharedTypes";
+import {
+  SkynetMessage,
+  HandledSkynetMessage,
+  Options,
+} from "../library/sharedTypes";
 
 import { fetchRecordsByQuery } from "../library/dynamo";
-import { Options } from "./sharedTypes";
 
 const createWithVendorContext = (
   options: Options

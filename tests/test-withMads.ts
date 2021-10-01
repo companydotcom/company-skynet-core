@@ -2,10 +2,9 @@ import withMads from "../src/middleware/withMads";
 import withContextPrep from "../src/middleware/withContextPrep";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import {
-  Options,
-  prepareMiddlewareDataForWorker,
-} from "../src/middleware/sharedTypes";
+import { Options } from "../src/library/sharedTypes";
+
+import { prepareMiddlewareDataForWorker } from "../src/library/util";
 
 AWS.config.update({ region: process.env.region });
 

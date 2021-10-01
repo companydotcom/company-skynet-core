@@ -1,7 +1,7 @@
 import withContextPrep from "../src/middleware/withContextPrep";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import { Options, getMiddyInternal } from "../src/middleware/sharedTypes";
+import { Options, getMiddyInternal } from "../src/library/sharedTypes";
 
 AWS.config.update({ region: process.env.region });
 

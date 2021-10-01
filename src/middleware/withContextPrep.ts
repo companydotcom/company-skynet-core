@@ -1,6 +1,10 @@
 import middy from "@middy/core";
 
-import { HandledSkynetMessage, SkynetMessage, Options } from "./sharedTypes";
+import {
+  HandledSkynetMessage,
+  SkynetMessage,
+  Options,
+} from "../library/sharedTypes";
 import { fetchRecordsByQuery } from "../library/dynamo";
 
 const defaults = {

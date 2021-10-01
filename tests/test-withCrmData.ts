@@ -1,7 +1,7 @@
 import withCrmData from "../src/middleware/withCrmData";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import { Options } from "../src/middleware/sharedTypes";
+import { Options } from "../src/library/sharedTypes";
 
 AWS.config.update({ region: process.env.region });
 

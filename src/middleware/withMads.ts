@@ -3,19 +3,17 @@ import _get from "lodash/get";
 import {
   SkynetMessage,
   HandledSkynetMessage,
-  addToEventContext,
   Options,
-  getMiddyInternal,
-} from "./sharedTypes";
+} from "../library/sharedTypes";
 import {
   transformMadsToReadFormat,
   evaluateMadsReadAccess,
   itemExists,
   findDuplicateMadsKeys,
   filterMadsByReadAccess,
-  /* tslint:disable-next-line */
+  addToEventContext,
+  getMiddyInternal,
 } from "../library/util.js";
-/* tslint:disable-next-line */
 import { batchPutIntoDynamoDb, fetchRecordsByQuery } from "../library/dynamo";
 
 const getInternalAccountMads = async (AWS: any, accountId: string) => {

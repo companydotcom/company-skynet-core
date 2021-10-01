@@ -1,13 +1,15 @@
 import middy from "@middy/core";
 import _get from "lodash/get";
 import {
-  addToEventContext,
   HandledSkynetMessage,
   Options,
   SkynetMessage,
+} from "../library/sharedTypes";
+import {
+  itemExists,
+  addToEventContext,
   getMiddyInternal,
-} from "./sharedTypes";
-import { itemExists } from "../library/util";
+} from "../library/util";
 import { fetchRecordsByQuery, batchPutIntoDynamoDb } from "../library/dynamo";
 
 /**

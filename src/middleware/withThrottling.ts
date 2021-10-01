@@ -4,8 +4,9 @@ import {
   RawEvent,
   Options,
   ThrottleSettings,
-  getMiddyInternal,
-} from "./sharedTypes";
+} from "../library/sharedTypes";
+
+import { getMiddyInternal } from "../library/util";
 
 import {
   getAvailableCallsThisSec as getAvailableCapacity,

@@ -1,7 +1,8 @@
 import withThrottling from "../src/middleware/withThrottling";
 import middy from "@middy/core";
 import AWS from "aws-sdk";
-import { getMiddyInternal, Options } from "../src/middleware/sharedTypes";
+import { Options } from "../src/library/sharedTypes";
+import { getMiddyInternal } from "../src/library/util";
 
 AWS.config.update({ region: process.env.region });
 

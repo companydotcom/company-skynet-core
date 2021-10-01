@@ -1,5 +1,10 @@
 import middy from "@middy/core";
-import { neverThrowError } from "./library/util";
+import {
+  neverThrowError,
+  addToEventContext,
+  prepareMiddlewareDataForWorker,
+  getMiddyInternal,
+} from "./library/util";
 import withMessageProcessing from "./middleware/withMessageProcessing";
 import withServiceData from "./middleware/withMessageProcessing";
 import withThrottling from "./middleware/withThrottling";
@@ -10,10 +15,7 @@ import {
   SkynetMessage,
   AllowableConfigKeys,
   Options,
-  addToEventContext,
-  prepareMiddlewareDataForWorker,
-  getMiddyInternal,
-} from "./middleware/sharedTypes";
+} from "./library/sharedTypes";
 
 import { handler as gpH } from "./handlers/getPostHttp";
 import { handler as sDb } from "./handlers/setupDatabase";

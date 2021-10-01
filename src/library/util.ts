@@ -1,6 +1,8 @@
+import middy from "@middy/core";
+import { SkynetMessage } from "./sharedTypes";
+
 /**
- * @description Attempt to JSON.parse input value. If parse fails, return original value.
- * @param {any} v
+ * @description Attempt to JSON.parse input value. If parse fails, return original @param {any} v
  * @returns {any}
  */
 export const parseJson = (v: any) => {
@@ -243,4 +245,91 @@ export const filterMadsByReadAccess = (mads: any) => {
   const globalMads = mads.filter((item: any) => item.readAccess.length > 0);
 
   return [internalMads, globalMads];
+};
+
+export const addToEventContext = (
+  request: middy.Request,
+  message: SkynetMessage,
+  middlewareName: string,
+  data: any
+) => {
+  const messageId = message.msgAttribs.eventId;
+  if (!request.internal[messageId]) {
+    request.internal[messageId] = {};
+  }
+
+  request.internal[messageId][middlewareName] = data;
+};
+
+export const prepareMiddlewareDataForWorker = async (
+  request: middy.Request,
+  message: SkynetMessage
+) => {
+  const messageId = message.msgAttribs.eventId;
+  console.log(messageId, "messageId");
+  if (!request.internal[messageId]) {
+    console.log("no data stored for this message");
+    return {};
+  }
+  const midsInUse = Object.keys(request.internal[messageId]);
+  return midsInUse.reduce((acc: any, midName: string): any => {
+    const midData = request.internal[messageId][midName];
+    const dataKeys = Object.keys(midData);
+    dataKeys.forEach((key: string) => {
+      if (acc.hasOwnProperty(key)) {
+        console.warn(
+          `Middleware data key ${key} in middleware ${midName} collides with another middleware's data key.  This is not permitted`
+        );
+      } else {
+        Object.assign(acc, {
+          [key]: request.internal[messageId][midName][key],
+        });
+      }
+    });
+    return acc;
+  }, {} as any);
+};
+
+export const setMiddyInternal = (
+  request: middy.Request,
+  key: string,
+  value: any
+) => {
+  request.internal[key] = value;
+};
+
+// Internal Context
+export const getMiddyInternal = async (
+  request: middy.Request,
+  variables: Array<string>
+) => {
+  if (!variables || !request) return {};
+  let keys = [] as any[];
+  let values = [] as any[];
+  keys = variables;
+  const promises = [] as any[];
+  keys.forEach((internalKey) => {
+    const valuePromise = request.internal[internalKey];
+    promises.push(
+      valuePromise && valuePromise.then
+        ? valuePromise.catch((err: any) => ({
+            status: "rejected",
+            reason: {
+              message: err,
+            },
+          }))
+        : valuePromise
+    );
+  });
+  // ensure promise has resolved by the time it's needed
+  // If one of the promises throws it will bubble up to @middy/core
+  values = (await Promise.all(promises)) as any[];
+  const errors = values
+    .filter((res: any) => res.status === "rejected")
+    .map((res: any) => res.reason.message);
+  if (errors.length) throw new Error(JSON.stringify(errors));
+  return keys.reduce(
+    (obj, key, index) => ({ ...obj, [key]: values[index] }),
+    {}
+  );
 };

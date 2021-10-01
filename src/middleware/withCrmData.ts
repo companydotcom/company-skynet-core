@@ -2,7 +2,11 @@ import middy from "@middy/core";
 import es from "../library/eventStream";
 import { v4 as uuid } from "uuid";
 import { itemExists } from "../library/util";
-import { SkynetMessage, HandledSkynetMessage, Options } from "./sharedTypes";
+import {
+  SkynetMessage,
+  HandledSkynetMessage,
+  Options,
+} from "../library/sharedTypes";
 
 const defaults = {
   region: "us-east-1",

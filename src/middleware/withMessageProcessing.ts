@@ -1,7 +1,7 @@
 import middy from "@middy/core";
 import { SQSEvent, ScheduledEvent, SNSEvent } from "aws-lambda";
 import { v4 as uuid } from "uuid";
-import { getMiddyInternal } from "./sharedTypes";
+import { getMiddyInternal } from "../library/util";
 
 import es from "../library/eventStream";
 
@@ -17,7 +17,7 @@ import {
   RawEvent,
   SkynetMessage,
   Options,
-} from "./sharedTypes";
+} from "../library/sharedTypes";
 
 const defaults = {
   isBulk: false,
