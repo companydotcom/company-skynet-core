@@ -1,3 +1,7 @@
 node_modules
-.serverless
-.webpack
+.husky
+.eslintcache
+.yarn-error.log
+yarn.lock
+
+.yarn/*

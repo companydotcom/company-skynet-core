@@ -53,13 +53,7 @@ export const fetchRecordsByQuery = async (AWS: any, queryObject: any, paginate =
  * @returns {Boolean}
  */
 // eslint-disable-next-line arrow-body-style
-export const incrementColumn = async (
-  AWS: any,
-  tName: string,
-  srchParams: any,
-  colName: string,
-  incVal: number = 1,
-) => {
+export const incrementColumn = async (AWS: any, tName: string, srchParams: any, colName: string, incVal = 1) => {
   const docClient = new AWS.DynamoDB.DocumentClient();
   const obj = {
     TableName: tName,
@@ -79,12 +73,7 @@ export const incrementColumn = async (
  * @param {String} tName
  * @returns {Boolean}
  */
-export const batchPutIntoDynamoDb = async (
-  AWS: any,
-  recs: any,
-  tName: string,
-  backoff: number = 1000,
-): Promise<void> => {
+export const batchPutIntoDynamoDb = async (AWS: any, recs: any, tName: string, backoff = 1000): Promise<void> => {
   const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Convert all records to DynamoDb object structure and append the top level
   // object structure for each record insertion

@@ -91,8 +91,8 @@ export const getAvailableCallsThisSec = async (
   AWS: any,
   { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity }: arg,
   serviceName: string,
-  bulk: boolean = true,
-  iter: number = 0,
+  bulk = true,
+  iter = 0,
 ): Promise<number> => {
   if (iter > retryCntForCapacity) {
     return 0;
@@ -154,7 +154,7 @@ export const getAvailableCallsThisSec = async (
  * @param {Number} incVal is the increment value. Defaults to 1
  * @returns {Boolean}
  */
-export const incrementUsedCount = async (AWS: any, serviceName: string, incVal: number = 1) => {
+export const incrementUsedCount = async (AWS: any, serviceName: string, incVal = 1) => {
   const currMs = Date.now();
   const currSec = Math.floor(currMs / 1000) + 1;
   const currMin = currSec - (currSec % 60) + 60;

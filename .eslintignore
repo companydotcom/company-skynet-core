@@ -1,5 +1,8 @@
 node_modules
-.serverless
-*.config.js
-.webpack
-**/*.js
+*.config.ts
+dist/
+.husky/
+yarn-error.log
+yarn.lock
+
+.yarn/*

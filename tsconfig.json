@@ -26,5 +26,5 @@
     "src/handlers/getPostHttp.ts",
     "tests/*.ts",
   ],
-  "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*"]
+  "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*", ".husky/**/*", ".yarn/**/*"]
 }
