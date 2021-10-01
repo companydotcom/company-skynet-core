@@ -125,8 +125,11 @@ export const neverThrowError = async (
   try {
     result.workerResp = await messageHandler(params);
   } catch (e) {
+    result.workerResp = {
+      status: 'fail',
+      error: getErrorString(e),
+    };
     result.status = 'fail';
-    result.error = getErrorString(e);
   }
   return result;
 };
@@ -305,30 +308,30 @@ export const getMiddyInternal = async (
   if (!variables || !request) return {};
   let keys = [] as any[];
   let values = [] as any[];
-  keys = variables;
-  const promises = [] as any[];
-  keys.forEach((internalKey) => {
-    const valuePromise = request.internal[internalKey];
+  if (Array.isArray(variables)) {
+    keys = values = variables;
+  }
+  const promises = [];
+  for (const internalKey of values) {
+    // 'internal.key.sub_value' -> { [key]: internal.key.sub_value }
+    const pathOptionKey = internalKey.split('.');
+    const rootOptionKey = pathOptionKey.shift();
+    let valuePromise = request.internal[rootOptionKey];
+    if (typeof valuePromise?.then !== 'function') {
+      valuePromise = Promise.resolve(valuePromise);
+    }
     promises.push(
-      valuePromise && valuePromise.then
-        ? valuePromise.catch((err: any) => ({
-            status: 'rejected',
-            reason: {
-              message: err,
-            },
-          }))
-        : valuePromise || {
-            status: 'rejected',
-            reason: { message: 'value did not exist' },
-          }
+      valuePromise.then((value: any) =>
+        pathOptionKey.reduce((p: any, c: any) => p?.[c], value)
+      )
     );
-  });
+  }
   // ensure promise has resolved by the time it's needed
   // If one of the promises throws it will bubble up to @middy/core
-  values = (await Promise.all(promises)) as any[];
+  values = await Promise.all(promises);
   const errors = values
-    .filter((res: any) => res.status === 'rejected')
-    .map((res: any) => res.reason.message);
+    .filter((res) => res.status === 'rejected')
+    .map((res) => res.reason.message);
   if (errors.length) throw new Error(JSON.stringify(errors));
   return keys.reduce(
     (obj, key, index) => ({ ...obj, [key]: values[index] }),

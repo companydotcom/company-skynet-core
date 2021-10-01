@@ -45,6 +45,10 @@ export const useSkynet = (
       // opportunity to adjust call signature of the worker to best suit this approach
       event.map((m: SkynetMessage) =>
         neverThrowError(m, worker).then((result: any) => {
+          console.log(
+            'Received worker response',
+            JSON.stringify(result.workerResp, null, 2)
+          );
           return {
             ...result,
             ...result.params,

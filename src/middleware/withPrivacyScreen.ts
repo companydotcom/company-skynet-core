@@ -33,42 +33,45 @@ const createWithPrivacyScreen = (
     const data = await getMiddyInternal(request, ['vendorConfig']);
     requestInternalStash = Object.assign({}, request.internal);
 
-    request.event = request.event.map(async (m: SkynetMessage) => {
-      const userId: string = _get(
-        m,
-        ['msgBody', 'context', 'user', 'userId'],
-        ''
-      );
-      const accountId: string = _get(
-        m,
-        ['msgBody', 'context', 'user', 'accountId'],
-        ''
-      );
-      const context = await getMiddyInternal(request, [
-        `user-${userId}`,
-        `account-${accountId}`,
-      ]);
-      delete context[`user-${userId}`].vendorData;
-      delete context[`user-${userId}`].globalMicroAppData;
-      delete context[`account-${accountId}`].vendorData;
-      delete context[`account-${accountId}`].globalMicroAppData;
+    request.event = await Promise.all(
+      request.event.map(async (m: SkynetMessage) => {
+        const userId: string = _get(
+          m,
+          ['msgBody', 'context', 'user', 'userId'],
+          ''
+        );
+        const accountId: string = _get(
+          m,
+          ['msgBody', 'context', 'user', 'accountId'],
+          ''
+        );
+        const context = await getMiddyInternal(request, [
+          `user-${userId}`,
+          `account-${accountId}`,
+        ]);
 
-      return {
-        message: {
-          payload: m.msgBody.payload,
-          metadata: m.msgBody.metadata,
-          context: {
-            ...m.msgBody.context,
-            user: context[`user-${userId}`],
-            account: context[`account-${accountId}`],
+        delete context[`user-${userId}`].vendorData;
+        delete context[`user-${userId}`].globalMicroAppData;
+        delete context[`account-${accountId}`].vendorData;
+        delete context[`account-${accountId}`].globalMicroAppData;
+
+        return {
+          message: {
+            payload: m.msgBody.payload,
+            metadata: m.msgBody.metadata,
+            context: {
+              ...m.msgBody.context,
+              user: context[`user-${userId}`],
+              account: context[`account-${accountId}`],
+            },
           },
-        },
-        attributes: m.msgAttribs,
-        rcptHandle: m.rcptHandle,
-        serviceConfigData: data.vendorConfig,
-        ...prepareMiddlewareDataForWorker(request, m),
-      };
-    });
+          attributes: m.msgAttribs,
+          rcptHandle: m.rcptHandle,
+          serviceConfigData: data.vendorConfig,
+          ...prepareMiddlewareDataForWorker(request, m),
+        };
+      })
+    );
     console.log('Stashing request.internal & reformating event messages');
     request.internal = {};
   };
