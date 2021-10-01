@@ -1,4 +1,4 @@
-import { sleep, itemExists } from "./util";
+import { sleep, itemExists } from './util';
 
 // Safety limit for bulk insertions into DynamoDb
 const batchWriteRecordsLimit = 25;
@@ -20,27 +20,27 @@ export const fetchRecordsByQuery = async (
   queryObject: any,
   paginate = false
 ) => {
-  const dynamodb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
+  const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Add safe fetch limit if one is not set
-  if (!itemExists(queryObject, "Limit")) {
+  if (!itemExists(queryObject, 'Limit')) {
     // eslint-disable-next-line no-param-reassign
     queryObject.Limit = dynamoDbQuerySafeBatchLimit;
   }
   const qResult = await dynamodb.query(queryObject).promise();
   if (paginate === true) {
-    if (!itemExists(qResult, "Items") || qResult.Items.length < 1) {
+    if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
       return { items: [], ExclusiveStartKey: undefined };
     }
     return {
       items: qResult.Items.map((it: any) =>
         AWS.DynamoDB.Converter.unmarshall(it)
       ),
-      ExclusiveStartKey: itemExists(qResult, "LastEvaluatedKey")
+      ExclusiveStartKey: itemExists(qResult, 'LastEvaluatedKey')
         ? qResult.LastEvaluatedKey
         : undefined,
     };
   }
-  if (!itemExists(qResult, "Items") || qResult.Items.length < 1) {
+  if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
     return [];
   }
   // Convert DynamoDb stlye objects to simple Javascript objects
@@ -72,7 +72,7 @@ export const incrementColumn = async (
     Key: srchParams,
     UpdateExpression: `ADD ${colName} :val`,
     ExpressionAttributeValues: {
-      ":val": incVal,
+      ':val': incVal,
     },
   };
   return docClient.update(obj).promise();
@@ -91,7 +91,7 @@ export const batchPutIntoDynamoDb = async (
   tName: string,
   backoff = 1000
 ): Promise<void> => {
-  const dynamodb = new AWS.DynamoDB({ apiVersion: "2012-08-10" });
+  const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
   // Convert all records to DynamoDb object structure and append the top level
   // object structure for each record insertion
   const preparedRecords = recs.map((record: any) => ({
@@ -127,7 +127,7 @@ export const batchPutIntoDynamoDb = async (
   const unprocessedRecords = result
     .map((resultDatum) => {
       if (
-        itemExists(resultDatum, "UnprocessedItems") &&
+        itemExists(resultDatum, 'UnprocessedItems') &&
         itemExists(resultDatum.UnprocessedItems, tName) &&
         resultDatum.UnprocessedItems[tName].length > 0
       ) {

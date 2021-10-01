@@ -1,17 +1,17 @@
-import middy from "@middy/core";
+import middy from '@middy/core';
 import {
   HandledSkynetMessage,
   RawEvent,
   Options,
   ThrottleSettings,
-} from "../library/sharedTypes";
+} from '../library/sharedTypes';
 
-import { getMiddyInternal } from "../library/util";
+import { getMiddyInternal } from '../library/util';
 
 import {
   getAvailableCallsThisSec as getAvailableCapacity,
   incrementUsedCount,
-} from "../library/throttle";
+} from '../library/throttle';
 
 const defaults = {
   isBulk: false,
@@ -25,7 +25,7 @@ const defaults = {
 
 type SettledOptions = {
   isBulk: boolean;
-  eventType: "transition" | "fetch";
+  eventType: 'transition' | 'fetch';
   service: string;
   region: string;
   account: string;
@@ -38,14 +38,14 @@ type SettledOptions = {
 const createWithThrottling = (
   opt: Options
 ): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
-  const middlewareName = "withThottling";
+  const middlewareName = 'withThottling';
   const options = { ...defaults, ...opt } as SettledOptions;
 
   // REQUEST HAS "event" "context" "response" and "error" keys
   const throttleBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
     async (request): Promise<void> => {
       if (options.debugMode) {
-        console.log("before", middlewareName);
+        console.log('before', middlewareName);
       }
       // fetch callCount records from dynamo
       // compare to options ThrottleLmts
@@ -61,7 +61,7 @@ const createWithThrottling = (
       );
 
       if (availCap < 1) {
-        console.log("No Capacity available for requests");
+        console.log('No Capacity available for requests');
         return;
       }
       request.internal.availCap = options.isBulk ? availCap : 1;
@@ -77,11 +77,11 @@ const createWithThrottling = (
   const throttleAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
     async (request): Promise<void> => {
       if (options.debugMode) {
-        console.log("after", middlewareName);
+        console.log('after', middlewareName);
       }
       // if request contains key to adjust used capacity
       // - adjust call count
-      const data = await getMiddyInternal(request, ["availCap"]);
+      const data = await getMiddyInternal(request, ['availCap']);
       if (data.availCap) {
         let processedCount = 0;
         if (request.response && request.response.length) {

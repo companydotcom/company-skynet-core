@@ -1,14 +1,14 @@
-import middy from "@middy/core";
+import middy from '@middy/core';
 
 import {
   HandledSkynetMessage,
   SkynetMessage,
   Options,
-} from "../library/sharedTypes";
-import { fetchRecordsByQuery } from "../library/dynamo";
+} from '../library/sharedTypes';
+import { fetchRecordsByQuery } from '../library/dynamo';
 
 const defaults = {
-  region: "us-east-1",
+  region: 'us-east-1',
 };
 
 /**
@@ -18,11 +18,11 @@ const defaults = {
  */
 const getCurrentAccountData = async (AWS: any, accountId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
-    TableName: "Account",
-    ExpressionAttributeNames: { "#pk": "accountId" },
-    KeyConditionExpression: "#pk = :accId",
+    TableName: 'Account',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
     ExpressionAttributeValues: {
-      ":accId": { S: accountId },
+      ':accId': { S: accountId },
     },
   });
   return fetchResponse[0];
@@ -35,11 +35,11 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
  */
 const getCurrentUserData = async (AWS: any, userId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
-    TableName: "User",
-    ExpressionAttributeNames: { "#pk": "userId" },
-    KeyConditionExpression: "#pk = :uId",
+    TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
     ExpressionAttributeValues: {
-      ":uId": { S: userId },
+      ':uId': { S: userId },
     },
   });
   return fetchResponse[0];
@@ -48,12 +48,12 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
 const createWithContextPrep = (
   opt: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  const middlewareName = "withContextPrep";
+  const middlewareName = 'withContextPrep';
   const options = { ...defaults, ...opt };
   const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> =
     async (request): Promise<void> => {
       if (options.debugMode) {
-        console.log("before", middlewareName);
+        console.log('before', middlewareName);
       }
       request.event.map(async (m) => {
         const userId = m.msgBody.context.user.userId;

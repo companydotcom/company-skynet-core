@@ -1,14 +1,14 @@
-import middy from "@middy/core";
-import _get from "lodash/get";
+import middy from '@middy/core';
+import _get from 'lodash/get';
 import {
   SkynetMessage,
   HandledSkynetMessage,
   Options,
-} from "../library/sharedTypes";
+} from '../library/sharedTypes';
 import {
   getMiddyInternal,
   prepareMiddlewareDataForWorker,
-} from "../library/util";
+} from '../library/util';
 
 /*
  * The purpose of the "Privacy screen" is four fold
@@ -20,29 +20,29 @@ import {
 const createWithPrivacyScreen = (
   options: Options
 ): middy.MiddlewareObj<[SkynetMessage] | any, [HandledSkynetMessage] | any> => {
-  const middlewareName = "withPrivacyScreen";
+  const middlewareName = 'withPrivacyScreen';
   let requestInternalStash = {} as any;
   const before: middy.MiddlewareFn<
     [SkynetMessage] | any,
     [HandledSkynetMessage] | any
   > = async (request): Promise<void> => {
     if (options.debugMode) {
-      console.log("before", middlewareName);
+      console.log('before', middlewareName);
     }
 
-    const data = await getMiddyInternal(request, ["vendorConfig"]);
+    const data = await getMiddyInternal(request, ['vendorConfig']);
     requestInternalStash = Object.assign({}, request.internal);
 
     request.event = request.event.map(async (m: SkynetMessage) => {
       const userId: string = _get(
         m,
-        ["msgBody", "context", "user", "userId"],
-        ""
+        ['msgBody', 'context', 'user', 'userId'],
+        ''
       );
       const accountId: string = _get(
         m,
-        ["msgBody", "context", "user", "accountId"],
-        ""
+        ['msgBody', 'context', 'user', 'accountId'],
+        ''
       );
       const context = await getMiddyInternal(request, [
         `user-${userId}`,
@@ -77,7 +77,7 @@ const createWithPrivacyScreen = (
     [HandledSkynetMessage] | any
   > = async (request): Promise<void> => {
     if (options.debugMode) {
-      console.log("after", middlewareName);
+      console.log('after', middlewareName);
     }
     request.response = request.response.map((m: any) => {
       return {

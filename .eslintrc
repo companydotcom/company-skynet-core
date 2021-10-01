@@ -9,7 +9,7 @@
     "node": true
   },
   "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint/eslint-plugin"],
   "settings": {
     "import/parsers": {
       "@typescript-eslint/parser": [".ts", ".tsx"]
@@ -26,6 +26,7 @@
   },
   "rules": {
     "@typescript-eslint/no-explicit-any": "off",
-    "no-prototype-builtins": "off"
+    "no-prototype-builtins": "off",
+    "quotes": [2, "single", "avoid-escape"]
   }
 }

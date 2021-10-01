@@ -1,16 +1,16 @@
-import middy from "@middy/core";
-import _get from "lodash/get";
+import middy from '@middy/core';
+import _get from 'lodash/get';
 import {
   HandledSkynetMessage,
   Options,
   SkynetMessage,
-} from "../library/sharedTypes";
+} from '../library/sharedTypes';
 import {
   itemExists,
   addToEventContext,
   getMiddyInternal,
-} from "../library/util";
-import { fetchRecordsByQuery, batchPutIntoDynamoDb } from "../library/dynamo";
+} from '../library/util';
+import { fetchRecordsByQuery, batchPutIntoDynamoDb } from '../library/dynamo';
 
 /**
  * Get the current account data from the database for the given accountId
@@ -19,11 +19,11 @@ import { fetchRecordsByQuery, batchPutIntoDynamoDb } from "../library/dynamo";
  */
 const getCurrentAccountData = async (AWS: any, accountId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
-    TableName: "Account",
-    ExpressionAttributeNames: { "#pk": "accountId" },
-    KeyConditionExpression: "#pk = :accId",
+    TableName: 'Account',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
     ExpressionAttributeValues: {
-      ":accId": { S: accountId },
+      ':accId': { S: accountId },
     },
   });
   return fetchResponse[0];
@@ -36,11 +36,11 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
  */
 const getCurrentUserData = async (AWS: any, userId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
-    TableName: "User",
-    ExpressionAttributeNames: { "#pk": "userId" },
-    KeyConditionExpression: "#pk = :uId",
+    TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
     ExpressionAttributeValues: {
-      ":uId": { S: userId },
+      ':uId': { S: userId },
     },
   });
   return fetchResponse[0];
@@ -50,7 +50,7 @@ const getAccountServiceData = async (accData: any, service?: string) => {
   let serviceAccountData = {};
 
   if (
-    itemExists(accData, "vendorData") &&
+    itemExists(accData, 'vendorData') &&
     itemExists(accData.vendorData, `${service}`)
   ) {
     serviceAccountData = accData.vendorData[`${service}`];
@@ -62,7 +62,7 @@ const getUserServiceData = async (userData: any, service?: string) => {
   let serviceUserData = {};
 
   if (
-    itemExists(userData, "vendorData") &&
+    itemExists(userData, 'vendorData') &&
     itemExists(userData.vendorData, `${service}`)
   ) {
     serviceUserData = userData.vendorData[`${service}`];
@@ -71,32 +71,32 @@ const getUserServiceData = async (userData: any, service?: string) => {
 };
 
 const defaults = {
-  service: "",
+  service: '',
 };
 
 const withServiceData = (
   opts: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  const middlewareName = "withServiceData";
+  const middlewareName = 'withServiceData';
   const options = { ...defaults, ...opts } as Options;
   const serviceDataBefore: middy.MiddlewareFn<
     SkynetMessage[],
     HandledSkynetMessage[]
   > = async (request): Promise<void> => {
     if (options.debugMode) {
-      console.log("before", middlewareName);
+      console.log('before', middlewareName);
     }
     await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
         const userId: string = _get(
           m,
-          ["msgBody", "context", "user", "userId"],
-          ""
+          ['msgBody', 'context', 'user', 'userId'],
+          ''
         );
         const accountId: string = _get(
           m,
-          ["msgBody", "context", "user", "accountId"],
-          ""
+          ['msgBody', 'context', 'user', 'accountId'],
+          ''
         );
 
         const context = await getMiddyInternal(request, [
@@ -126,35 +126,35 @@ const withServiceData = (
     HandledSkynetMessage[]
   > = async (request): Promise<void> => {
     if (options.debugMode) {
-      console.log("after", middlewareName);
+      console.log('after', middlewareName);
     }
     const { AWS, service } = options;
     // set changes to serviceUserData/serviceAccountData
     if (request.response) {
       await Promise.all(
         request.response.map(async (m: HandledSkynetMessage) => {
-          let promises = [] as any[];
+          const promises = [] as any[];
           const userId: string = _get(
             m,
-            ["msgBody", "context", "user", "userId"],
-            ""
+            ['msgBody', 'context', 'user', 'userId'],
+            ''
           );
           const accountId: string = _get(
             m,
-            ["msgBody", "context", "user", "accountId"],
-            ""
+            ['msgBody', 'context', 'user', 'accountId'],
+            ''
           );
 
           const { workerResp } = m;
-          if (itemExists(workerResp, "serviceAccountData")) {
-            if (typeof workerResp.serviceAccountData !== "object") {
+          if (itemExists(workerResp, 'serviceAccountData')) {
+            if (typeof workerResp.serviceAccountData !== 'object') {
               throw new Error(
-                "Service specific user account data should be an object"
+                'Service specific user account data should be an object'
               );
             }
             if (accountId) {
               const currAccData = await getCurrentAccountData(AWS, accountId);
-              if (!itemExists(currAccData, "vendorData")) {
+              if (!itemExists(currAccData, 'vendorData')) {
                 currAccData.vendorData = {};
               }
               if (!itemExists(currAccData.vendorData, `${service}`)) {
@@ -165,18 +165,18 @@ const withServiceData = (
                 ...workerResp.serviceAccountData,
               };
               promises.push(
-                batchPutIntoDynamoDb(AWS, [currAccData], "Account")
+                batchPutIntoDynamoDb(AWS, [currAccData], 'Account')
               );
             }
           }
 
-          if (itemExists(workerResp, "serviceUserData")) {
-            if (typeof workerResp.serviceUserData !== "object") {
-              throw new Error("Service specific user data should be an object");
+          if (itemExists(workerResp, 'serviceUserData')) {
+            if (typeof workerResp.serviceUserData !== 'object') {
+              throw new Error('Service specific user data should be an object');
             }
             if (userId) {
               const currUserData = await getCurrentUserData(AWS, userId);
-              if (!itemExists(currUserData, "vendorData")) {
+              if (!itemExists(currUserData, 'vendorData')) {
                 currUserData.vendorData = {};
               }
               if (!itemExists(currUserData.vendorData, `${service}`)) {
@@ -187,7 +187,7 @@ const withServiceData = (
                 ...workerResp.serviceUserData,
               };
 
-              promises.push(batchPutIntoDynamoDb(AWS, [currUserData], "User"));
+              promises.push(batchPutIntoDynamoDb(AWS, [currUserData], 'User'));
             }
           }
           await promises;

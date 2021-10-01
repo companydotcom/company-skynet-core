@@ -1,4 +1,4 @@
-import { deepParseJson } from "./util";
+import { deepParseJson } from './util';
 
 const safeMsgFetchLimitPerInstance = 500;
 /**
@@ -12,7 +12,7 @@ const unmarshallMsgAttribs = (attribs: any) => {
   return Object.keys(attribs).reduce((res, key) => {
     const { Type: type, Value: value } = attribs[key];
 
-    if (type !== "String" && type !== "Number") {
+    if (type !== 'String' && type !== 'Number') {
       return { ...res, [key]: JSON.parse(value) };
     }
     return { ...res, [key]: value };
@@ -34,11 +34,11 @@ export const parseMsg = (message: any) => {
       : deepParseJson(message.body);
   } catch (e1) {
     console.log(
-      "Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body"
+      'Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body'
     );
     throw e1;
   }
-  if (typeof msgB.MessageAttributes !== "undefined") {
+  if (typeof msgB.MessageAttributes !== 'undefined') {
     msgAttribs = unmarshallMsgAttribs(msgB.MessageAttributes);
   }
   return {
@@ -108,7 +108,7 @@ export const getMsgsFromQueue = async (
   }
   const resps = await Promise.all(proms);
   resps.forEach((resp) => {
-    if (typeof resp.Messages !== "undefined" && resp.Messages.length > 0) {
+    if (typeof resp.Messages !== 'undefined' && resp.Messages.length > 0) {
       messages = [...messages, ...resp.Messages];
     }
   });

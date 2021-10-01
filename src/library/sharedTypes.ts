@@ -1,5 +1,5 @@
-import { SQSEvent, ScheduledEvent } from "aws-lambda";
-import { Worker } from "cluster";
+import { SQSEvent, ScheduledEvent } from 'aws-lambda';
+import { Worker } from 'cluster';
 
 export type Context = {
   user: any;
@@ -32,7 +32,7 @@ type MessageAttributes = {
   triggerEventId: string;
   entity: string;
   entityId: string;
-  operation: "C";
+  operation: 'C';
   status: string;
   eventType: string;
 };
@@ -72,7 +72,7 @@ export type ThrottleSettings = {
 
 export type Options = {
   isBulk?: boolean;
-  eventType?: "transition" | "fetch";
+  eventType?: 'transition' | 'fetch';
   service?: string;
   region?: string;
   account?: string;
@@ -83,7 +83,7 @@ export type Options = {
 };
 
 export interface CoreSkynetConfig {
-  eventType: "fetch" | "transition" | "webhook";
+  eventType: 'fetch' | 'transition' | 'webhook';
   isBulk: boolean;
   region: string;
   service: string;
@@ -96,16 +96,16 @@ export interface CoreSkynetConfig {
 }
 
 export type AllowableConfigKeys =
-  | "eventType"
-  | "isBulk"
-  | "region"
-  | "service"
-  | "account"
-  | "useThrottling"
-  | "throttleOptions"
-  | "maxMessagesPerInstance"
-  | "debugMode"
-  | "useMads";
+  | 'eventType'
+  | 'isBulk'
+  | 'region'
+  | 'service'
+  | 'account'
+  | 'useThrottling'
+  | 'throttleOptions'
+  | 'maxMessagesPerInstance'
+  | 'debugMode'
+  | 'useMads';
 
 export type SkynetWorkerInterface = {
   message: MessageBody;

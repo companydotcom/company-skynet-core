@@ -1,5 +1,5 @@
-import middy from "@middy/core";
-import { SkynetMessage } from "./sharedTypes";
+import middy from '@middy/core';
+import { SkynetMessage } from './sharedTypes';
 
 /**
  * @description Attempt to JSON.parse input value. If parse fails, return original @param {any} v
@@ -14,7 +14,7 @@ export const parseJson = (v: any) => {
 };
 
 export const deepParseJson = (jsonString: any): any => {
-  if (typeof jsonString === "string") {
+  if (typeof jsonString === 'string') {
     if (!isNaN(Number(jsonString))) {
       return jsonString;
     }
@@ -25,7 +25,7 @@ export const deepParseJson = (jsonString: any): any => {
     }
   } else if (Array.isArray(jsonString)) {
     return jsonString.map((val) => deepParseJson(val));
-  } else if (typeof jsonString === "object" && jsonString !== null) {
+  } else if (typeof jsonString === 'object' && jsonString !== null) {
     return Object.keys(jsonString).reduce((obj, key: string) => {
       obj[key] = deepParseJson(jsonString[key]);
       return obj;
@@ -42,13 +42,13 @@ export const deepParseJson = (jsonString: any): any => {
 const getCodeStatus = (code: number) => {
   switch (code) {
     case 200:
-      return "OK";
+      return 'OK';
     case 201:
-      return "Created";
+      return 'Created';
     case 400:
-      return "Bad Request";
+      return 'Bad Request';
     case 500:
-      return "Internal Server Error";
+      return 'Internal Server Error';
     default:
       return undefined;
   }
@@ -69,11 +69,11 @@ const getCodeStatus = (code: number) => {
  */
 export const formatHttpResponse = (code: number, input: any, result: any) => {
   const status = getCodeStatus(code);
-  const resp = `HTTP Resp: ${code}${status ? ` - ${status}` : ""}`;
+  const resp = `HTTP Resp: ${code}${status ? ` - ${status}` : ''}`;
   let resultObj = {} as any;
   if (result instanceof Error) {
     resultObj.error = result.toString();
-  } else if (typeof result === "object") {
+  } else if (typeof result === 'object') {
     resultObj = result;
   } else {
     resultObj.message = result;
@@ -81,8 +81,8 @@ export const formatHttpResponse = (code: number, input: any, result: any) => {
   return {
     statusCode: code,
     headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Credentials": true,
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': true,
     },
     body: JSON.stringify({
       resp,
@@ -101,7 +101,7 @@ export const getErrorString = (e: any) => {
   if (e instanceof Error) {
     return e.toString();
   }
-  if (typeof e === "object") {
+  if (typeof e === 'object') {
     return JSON.stringify(e, null, 4);
   }
   return e;
@@ -119,13 +119,13 @@ export const neverThrowError = async (
   messageHandler: (params: any) => any
 ) => {
   const result = {
-    status: "pass",
+    status: 'pass',
     params,
   } as any;
   try {
     result.workerResp = await messageHandler(params);
   } catch (e) {
-    result.status = "fail";
+    result.status = 'fail';
     result.error = getErrorString(e);
   }
   return result;
@@ -139,7 +139,7 @@ export const neverThrowError = async (
  */
 // eslint-disable-next-line max-len
 export const itemExists = (obj: any, param: string) =>
-  typeof obj === "object" && obj !== null
+  typeof obj === 'object' && obj !== null
     ? Object.prototype.hasOwnProperty.call(obj, param)
     : false;
 
@@ -175,7 +175,7 @@ export const evaluateMadsReadAccess = (
       const eachMadsFiltered = value.filter(
         (dataPoint) =>
           dataPoint.readAccess.includes(service) ||
-          dataPoint.readAccess.includes("*")
+          dataPoint.readAccess.includes('*')
       );
 
       if (eachMadsFiltered.length) {
@@ -267,7 +267,7 @@ export const prepareMiddlewareDataForWorker = async (
 ) => {
   const messageId = message.msgAttribs.eventId;
   if (!request.internal[messageId]) {
-    console.log("no data stored for this message");
+    console.log('no data stored for this message');
     return {};
   }
   const midsInUse = Object.keys(request.internal[messageId]);
@@ -312,14 +312,14 @@ export const getMiddyInternal = async (
     promises.push(
       valuePromise && valuePromise.then
         ? valuePromise.catch((err: any) => ({
-            status: "rejected",
+            status: 'rejected',
             reason: {
               message: err,
             },
           }))
         : valuePromise || {
-            status: "rejected",
-            reason: { message: "value did not exist" },
+            status: 'rejected',
+            reason: { message: 'value did not exist' },
           }
     );
   });
@@ -327,7 +327,7 @@ export const getMiddyInternal = async (
   // If one of the promises throws it will bubble up to @middy/core
   values = (await Promise.all(promises)) as any[];
   const errors = values
-    .filter((res: any) => res.status === "rejected")
+    .filter((res: any) => res.status === 'rejected')
     .map((res: any) => res.reason.message);
   if (errors.length) throw new Error(JSON.stringify(errors));
   return keys.reduce(

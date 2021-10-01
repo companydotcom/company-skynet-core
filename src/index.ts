@@ -1,22 +1,22 @@
-import middy from "@middy/core";
-import { neverThrowError, addToEventContext } from "./library/util";
-import withMessageProcessing from "./middleware/withMessageProcessing";
-import withServiceData from "./middleware/withServiceData";
-import withThrottling from "./middleware/withThrottling";
-import withVendorConfig from "./middleware/withVendorConfig";
-import withContextPrep from "./middleware/withContextPrep";
-import withCrmData from "./middleware/withCrmData";
-import withMads from "./middleware/withMads";
-import withPrivacyScreen from "./middleware/withPrivacyScreen";
+import middy from '@middy/core';
+import { neverThrowError, addToEventContext } from './library/util';
+import withMessageProcessing from './middleware/withMessageProcessing';
+import withServiceData from './middleware/withServiceData';
+import withThrottling from './middleware/withThrottling';
+import withVendorConfig from './middleware/withVendorConfig';
+import withContextPrep from './middleware/withContextPrep';
+import withCrmData from './middleware/withCrmData';
+import withMads from './middleware/withMads';
+import withPrivacyScreen from './middleware/withPrivacyScreen';
 import {
   CoreSkynetConfig,
   SkynetMessage,
   AllowableConfigKeys,
   Options,
-} from "./library/sharedTypes";
+} from './library/sharedTypes';
 
-import { handler as gpH } from "./handlers/getPostHttp";
-import { handler as sDb } from "./handlers/setupDatabase";
+import { handler as gpH } from './handlers/getPostHttp';
+import { handler as sDb } from './handlers/setupDatabase';
 
 const createTailoredOptions = (
   keys: Array<AllowableConfigKeys>,
@@ -54,33 +54,33 @@ export const useSkynet = (
 
   let middleware: Array<any>;
   switch (skynetConfig.eventType) {
-    case "webhook":
+    case 'webhook':
       middleware = [
         withMessageProcessing(
           createTailoredOptions(
             [
-              "isBulk",
-              "eventType",
-              "service",
-              "maxMessagesPerInstance",
-              "region",
-              "account",
-              "debugMode",
+              'isBulk',
+              'eventType',
+              'service',
+              'maxMessagesPerInstance',
+              'region',
+              'account',
+              'debugMode',
             ],
             skynetConfig,
             AWS
           )
         ),
         withVendorConfig(
-          createTailoredOptions(["service", "debugMode"], skynetConfig, AWS)
+          createTailoredOptions(['service', 'debugMode'], skynetConfig, AWS)
         ),
         withPrivacyScreen(
-          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+          createTailoredOptions(['debugMode'], skynetConfig, AWS)
         ),
         ...additionalMiddleware.map((mid) =>
           mid(
             createTailoredOptions(
-              ["service", "eventType", "isBulk", "debugMode"],
+              ['service', 'eventType', 'isBulk', 'debugMode'],
               skynetConfig,
               false
             )
@@ -88,42 +88,42 @@ export const useSkynet = (
         ),
       ];
       break;
-    case "fetch":
-    case "transition":
+    case 'fetch':
+    case 'transition':
       middleware = [
         withMessageProcessing(
           createTailoredOptions(
             [
-              "isBulk",
-              "eventType",
-              "service",
-              "maxMessagesPerInstance",
-              "region",
-              "account",
-              "debugMode",
+              'isBulk',
+              'eventType',
+              'service',
+              'maxMessagesPerInstance',
+              'region',
+              'account',
+              'debugMode',
             ],
             skynetConfig,
             AWS
           )
         ),
         withContextPrep(
-          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+          createTailoredOptions(['debugMode'], skynetConfig, AWS)
         ),
         withVendorConfig(
-          createTailoredOptions(["service", "debugMode"], skynetConfig, AWS)
+          createTailoredOptions(['service', 'debugMode'], skynetConfig, AWS)
         ),
         ...(skynetConfig.useMads
           ? [
               withServiceData(
                 createTailoredOptions(
-                  ["service", "region", "account", "debugMode"],
+                  ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
                   AWS
                 )
               ),
               withMads(
                 createTailoredOptions(
-                  ["service", "region", "account", "debugMode"],
+                  ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
                   AWS
                 )
@@ -132,19 +132,19 @@ export const useSkynet = (
           : [
               withServiceData(
                 createTailoredOptions(
-                  ["service", "region", "account", "debugMode"],
+                  ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
                   AWS
                 )
               ),
             ]), // eventually swap for Mads as default
         withPrivacyScreen(
-          createTailoredOptions(["debugMode"], skynetConfig, AWS)
+          createTailoredOptions(['debugMode'], skynetConfig, AWS)
         ),
         ...additionalMiddleware.map((mid) =>
           mid(
             createTailoredOptions(
-              ["service", "eventType", "isBulk", "debugMode"],
+              ['service', 'eventType', 'isBulk', 'debugMode'],
               skynetConfig,
               false
             )
@@ -156,7 +156,7 @@ export const useSkynet = (
         middleware.unshift(
           withThrottling(
             createTailoredOptions(
-              ["service", "isBulk", "throttleOptions"],
+              ['service', 'isBulk', 'throttleOptions'],
               skynetConfig,
               AWS
             )
@@ -181,15 +181,15 @@ export const useSkynet = (
  * @param {string} s service is the name of the service
  */
 export const setupDatabase = async (AWS: any, d: any, s: string) => {
-  let data = "";
-  if (typeof d === "object") {
+  let data = '';
+  if (typeof d === 'object') {
     data = d;
   } else {
     try {
       data = JSON.parse(d);
     } catch (e) {
       console.log(
-        "Unable to parse the database file. Please check if it is a valid JSON document."
+        'Unable to parse the database file. Please check if it is a valid JSON document.'
       );
       return;
     }
