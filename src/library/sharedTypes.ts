@@ -1,5 +1,4 @@
 import { SQSEvent, ScheduledEvent } from 'aws-lambda';
-import { Worker } from 'cluster';
 
 export type Context = {
   user: any;

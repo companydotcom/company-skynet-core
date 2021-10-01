@@ -112,6 +112,7 @@ const withServiceData = (
           context[`account-${accountId}`],
           options.service
         );
+        console.log('User & Account Service Data Retrieved');
         addToEventContext(request, m, middlewareName, {
           serviceUserData: userSD,
           serviceAccountData: accountSD,
@@ -147,6 +148,8 @@ const withServiceData = (
 
           const { workerResp } = m;
           if (itemExists(workerResp, 'serviceAccountData')) {
+            console.log('Writing serviceAccountData');
+
             if (typeof workerResp.serviceAccountData !== 'object') {
               throw new Error(
                 'Service specific user account data should be an object'
@@ -171,6 +174,7 @@ const withServiceData = (
           }
 
           if (itemExists(workerResp, 'serviceUserData')) {
+            console.log('Writing serviceUserData');
             if (typeof workerResp.serviceUserData !== 'object') {
               throw new Error('Service specific user data should be an object');
             }

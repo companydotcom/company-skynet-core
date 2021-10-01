@@ -69,6 +69,7 @@ const createWithPrivacyScreen = (
         ...prepareMiddlewareDataForWorker(request, m),
       };
     });
+    console.log('Stashing request.internal & reformating event messages');
     request.internal = {};
   };
 
@@ -87,6 +88,7 @@ const createWithPrivacyScreen = (
         workerResp: m.workerResp,
       };
     });
+    console.log('Popping request.internal & reformating event messages');
     request.internal = Object.assign({}, requestInternalStash);
   };
 

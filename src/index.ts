@@ -38,7 +38,9 @@ export const useSkynet = (
   worker: (params: any) => any,
   additionalMiddleware: [(opt: Options) => middy.MiddlewareObj]
 ) => {
+  console.log('Preparing Skynet Handler');
   const handler = middy(async (event) => {
+    console.log('Delegating processed messages to worker:');
     return Promise.all(
       // opportunity to adjust call signature of the worker to best suit this approach
       event.map((m: SkynetMessage) =>
@@ -167,7 +169,7 @@ export const useSkynet = (
     default:
       middleware = [];
   }
-
+  console.log('Applying', middleware.length, 'middlewares.');
   return middleware.reduce(
     (middyHandler, midlw) => middyHandler.use(midlw),
     handler

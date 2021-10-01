@@ -144,6 +144,7 @@ const withMessageProcessing = (
     async (request): Promise<void> => {
       if (options.debugMode) {
         console.log('before', middlewareName);
+        console.log('TRIGGER EVENT:', request.event);
       }
       if (isScheduledEvent(request.event) && options.isBulk) {
         await handleBulk(request, options);
@@ -164,6 +165,7 @@ const withMessageProcessing = (
 
     const handledMessages = request.response;
     if (handledMessages) {
+      console.log(handledMessages.length, 'message(s) were processed');
       await Promise.all(
         handledMessages.map(async (message: HandledSkynetMessage) => {
           const { rcptHandle, msgAttribs, workerResp, msgBody } = message;

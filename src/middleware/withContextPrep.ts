@@ -70,6 +70,9 @@ const createWithContextPrep = (
         const account = getCurrentAccountData(options.AWS, accountId);
         request.internal[`account-${accountId}`] = account;
         m.msgBody.context.user.account = account;
+        console.log(
+          `Fetching latest User: ${userId} and Account: ${accountId} for this message`
+        );
       });
     };
 
