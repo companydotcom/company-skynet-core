@@ -6,6 +6,9 @@ jspm_packages
 
 dist/
 yarn-error.log
+/lib
+.env
+
 
 .yarn/*
 !.yarn/cache
