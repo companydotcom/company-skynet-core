@@ -10,7 +10,8 @@
     "prettier": "prettier --list-different './**/*.{js,ts}'",
     "postinstall": "husky install",
     "prepublishOnly": "pinst --disable",
-    "postpublish": "pinst --enable"
+    "postpublish": "pinst --enable",
+    "dev": "webpack"
   },
   "author": "Company.com",
   "license": "ISC",
@@ -49,7 +50,6 @@
     "@babel/preset-typescript": "^7.15.0",
     "@middy/core": "^2.5.1",
     "@middy/util": "^2.5.1",
-    "@types/jest": "^27.0.2",
     "aws-sdk": "^2.875.0",
     "babel-jest": "^24.9.0",
     "deep-parse-json": "^1.0.1",

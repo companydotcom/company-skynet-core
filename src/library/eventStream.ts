@@ -1,4 +1,4 @@
-import { parseJson } from './util';
+import { parseJson } from "./util";
 
 /**
  * @typedef MessageAttribute
@@ -22,14 +22,14 @@ import { parseJson } from './util';
  * @param {*} val
  * @returns {Boolean}
  */
-const isString = (val: any) => typeof val === 'string';
+const isString = (val: any) => typeof val === "string";
 
 /**
  * Determine if the given value is a number
  * @param {*} val
  * @returns {Boolean}
  */
-const isNumber = (val: any) => typeof val === 'number';
+const isNumber = (val: any) => typeof val === "number";
 
 /**
  * Determine if the given value is an array
@@ -45,10 +45,12 @@ const isArray = (val: any) => Array.isArray(val);
  * @throws {Error}
  */
 const getAttrType = (val: any) => {
-  if (isString(val)) return 'String';
-  if (isNumber(val)) return 'Number';
-  if (isArray(val)) return 'String.Array';
-  throw new Error(`Invalid MessageAttribute type: ${typeof val} for value ${val}. Valid types: String, Number, Array.`);
+  if (isString(val)) return "String";
+  if (isNumber(val)) return "Number";
+  if (isArray(val)) return "String.Array";
+  throw new Error(
+    `Invalid MessageAttribute type: ${typeof val} for value ${val}. Valid types: String, Number, Array.`
+  );
 };
 
 /**
@@ -59,7 +61,7 @@ const getAttrType = (val: any) => {
 const parseAttributes = (attributes: any) =>
   Object.keys(attributes).reduce((res, key) => {
     const val = attributes[key];
-    if (typeof val === 'undefined') {
+    if (typeof val === "undefined") {
       return res;
     }
     const type = getAttrType(val);
@@ -67,7 +69,8 @@ const parseAttributes = (attributes: any) =>
       ...res,
       [key]: {
         DataType: type,
-        StringValue: type === 'String.Array' ? JSON.stringify(val) : val.toString(),
+        StringValue:
+          type === "String.Array" ? JSON.stringify(val) : val.toString(),
       },
     };
   }, {});
@@ -77,14 +80,15 @@ const parseAttributes = (attributes: any) =>
  * @param {any} type
  * @returns {boolean}
  */
-const isSnsString = (type: any) => type === 'String';
+const isSnsString = (type: any) => type === "String";
 
 /**
  * Parses object if it is not a string
  * @param {any} val
  * @param {any} type
  */
-const parseSnsType = (val: any, type: string) => (isSnsString(type) ? val : JSON.parse(val));
+const parseSnsType = (val: any, type: string) =>
+  isSnsString(type) ? val : JSON.parse(val);
 
 export default {
   /**
@@ -95,8 +99,14 @@ export default {
    * @param {CompanyEventAttributes} attributes
    * @returns {*}
    */
-  publish: async (AWS: any, topicArn: string, message: any, attributes = {}, options = {}) => {
-    const sns = new AWS.SNS({ apiVersion: '2010-03-31' });
+  publish: async (
+    AWS: any,
+    topicArn: string,
+    message: any,
+    attributes = {},
+    options = {}
+  ) => {
+    const sns = new AWS.SNS({ apiVersion: "2010-03-31" });
     let res;
     try {
       const params = {
@@ -106,10 +116,10 @@ export default {
         ...options,
       };
       res = await sns.publish(params).promise();
-      console.log('SNS Publish - Success: ', JSON.stringify(params));
+      console.log("SNS Publish - Success: ", JSON.stringify(params));
       return res;
     } catch (err) {
-      console.log('SNS Publish - Failure: ', err.toString());
+      console.log("SNS Publish - Failure: ", err.toString());
       return err;
     }
   },
@@ -122,8 +132,11 @@ export default {
    */
   parse: (event: any) => {
     const message = parseJson(event.Records[0].Sns.Message);
-    const attributes = Object.keys(event.Records[0].Sns.MessageAttributes).reduce((res, key) => {
-      const { Type: type, Value: value } = event.Records[0].Sns.MessageAttributes[key];
+    const attributes = Object.keys(
+      event.Records[0].Sns.MessageAttributes
+    ).reduce((res, key) => {
+      const { Type: type, Value: value } =
+        event.Records[0].Sns.MessageAttributes[key];
 
       const val = parseSnsType(value, type);
       return { ...res, [key]: val };

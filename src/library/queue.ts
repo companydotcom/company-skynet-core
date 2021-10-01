@@ -1,4 +1,4 @@
-const { deepParseJson } = require('./util');
+import { deepParseJson } from "./util";
 
 const safeMsgFetchLimitPerInstance = 500;
 /**
@@ -12,7 +12,7 @@ const unmarshallMsgAttribs = (attribs: any) => {
   return Object.keys(attribs).reduce((res, key) => {
     const { Type: type, Value: value } = attribs[key];
 
-    if (type !== 'String' && type !== 'Number') {
+    if (type !== "String" && type !== "Number") {
       return { ...res, [key]: JSON.parse(value) };
     }
     return { ...res, [key]: value };
@@ -29,12 +29,16 @@ export const parseMsg = (message: any) => {
   let msgB = message.Body ? message.Body : message.body;
   let msgAttribs = {};
   try {
-    msgB = message.Body ? deepParseJson(message.Body) : deepParseJson(message.body);
+    msgB = message.Body
+      ? deepParseJson(message.Body)
+      : deepParseJson(message.body);
   } catch (e1) {
-    console.log('Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body');
+    console.log(
+      "Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body"
+    );
     throw e1;
   }
-  if (typeof msgB.MessageAttributes !== 'undefined') {
+  if (typeof msgB.MessageAttributes !== "undefined") {
     msgAttribs = unmarshallMsgAttribs(msgB.MessageAttributes);
   }
   return {
@@ -52,7 +56,12 @@ export const parseMsg = (message: any) => {
  * @param {String} msg is the message that needs to be sent
  * @returns {*}
  */
-export const sendMsg = async (AWS: any, region: string, qUrl: string, msg: any) => {
+export const sendMsg = async (
+  AWS: any,
+  region: string,
+  qUrl: string,
+  msg: any
+) => {
   const sqs = new AWS.SQS({ region });
   return sqs
     .sendMessage({
@@ -70,12 +79,20 @@ export const sendMsg = async (AWS: any, region: string, qUrl: string, msg: any) 
  * @param {String} QueueUrl is the url of the queue from which to fetch the messages
  * @returns {[SQSMessage]}
  */
-export const getMsgsFromQueue = async (AWS: any, region: string, msgCountToFetch: number, QueueUrl: string) => {
+export const getMsgsFromQueue = async (
+  AWS: any,
+  region: string,
+  msgCountToFetch: number,
+  QueueUrl: string
+) => {
   console.log(`Fetching messages from SQS URL: ${QueueUrl}`);
   const sqs = new AWS.SQS({ region });
   let messages: any[] = [];
   const proms = [];
-  let msgsToFetch = msgCountToFetch < safeMsgFetchLimitPerInstance ? msgCountToFetch : safeMsgFetchLimitPerInstance;
+  let msgsToFetch =
+    msgCountToFetch < safeMsgFetchLimitPerInstance
+      ? msgCountToFetch
+      : safeMsgFetchLimitPerInstance;
   while (msgsToFetch > 0) {
     const msgsToFetchThisIter = msgsToFetch < 10 ? msgsToFetch : 10;
     msgsToFetch -= msgsToFetchThisIter;
@@ -86,12 +103,12 @@ export const getMsgsFromQueue = async (AWS: any, region: string, msgCountToFetch
           MaxNumberOfMessages: msgsToFetchThisIter,
           VisibilityTimeout: 900,
         })
-        .promise(),
+        .promise()
     );
   }
   const resps = await Promise.all(proms);
   resps.forEach((resp) => {
-    if (typeof resp.Messages !== 'undefined' && resp.Messages.length > 0) {
+    if (typeof resp.Messages !== "undefined" && resp.Messages.length > 0) {
       messages = [...messages, ...resp.Messages];
     }
   });
@@ -106,7 +123,12 @@ export const getMsgsFromQueue = async (AWS: any, region: string, msgCountToFetch
  * @param {String} ReceiptHandle is the receipt handle of the message to be deleted
  * @returns {*}
  */
-export const deleteMsg = async (AWS: any, region: string, QueueUrl: string, ReceiptHandle: string) => {
+export const deleteMsg = async (
+  AWS: any,
+  region: string,
+  QueueUrl: string,
+  ReceiptHandle: string
+) => {
   const sqs = new AWS.SQS({ region });
   sqs
     .deleteMessage({

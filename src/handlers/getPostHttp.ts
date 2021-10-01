@@ -1,6 +1,6 @@
-import { v4 as uuid } from 'uuid';
-import es from '../library/eventStream';
-import { getErrorString } from '../library/util';
+import { v4 as uuid } from "uuid";
+import es from "../library/eventStream";
+import { getErrorString } from "../library/util";
 
 /**
  * This is the handler that is invoked by a http event to process
@@ -20,15 +20,22 @@ export const handler = async (
   service: string,
   account: string,
   entityId: string,
-  event: any,
+  event: any
 ) => {
   try {
-    console.log(`getpostHttp: INFO: Input is: ${typeof event === 'object' ? JSON.stringify(event, null, 4) : event}`);
+    console.log(
+      `getpostHttp: INFO: Input is: ${
+        typeof event === "object" ? JSON.stringify(event, null, 4) : event
+      }`
+    );
 
-    const eventMsg = typeof event === 'object' ? event : JSON.parse(event);
+    const eventMsg = typeof event === "object" ? event : JSON.parse(event);
     const eventBody = eventMsg.body;
     const eventPathParams = eventMsg.pathParameters;
-    const eventQueryStringParams = eventMsg.queryStringParameters !== 'undefined' ? eventMsg.queryStringParameters : {};
+    const eventQueryStringParams =
+      eventMsg.queryStringParameters !== "undefined"
+        ? eventMsg.queryStringParameters
+        : {};
 
     await es.publish(
       AWS,
@@ -45,24 +52,24 @@ export const handler = async (
         },
       },
       {
-        status: 'trigger',
-        operation: eventPathParams.operation === 'fetch' ? 'R' : 'C',
-        entity: 'product',
+        status: "trigger",
+        operation: eventPathParams.operation === "fetch" ? "R" : "C",
+        entity: "product",
         entityId,
         eventId: uuid(),
         emitter: service,
         eventType: eventPathParams.operation,
-      },
+      }
     );
 
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
       },
       body: JSON.stringify({
-        status: 'getpostHttp: INFO: Request accepted and queued',
+        status: "getpostHttp: INFO: Request accepted and queued",
         input: event,
       }),
     };
@@ -71,8 +78,8 @@ export const handler = async (
     return {
       statusCode: 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": true,
       },
       body: JSON.stringify({
         status: `getpostHttp: ERROR: We encountered an error. Please quote TS${Date.now()} as reference id for further assistance`,

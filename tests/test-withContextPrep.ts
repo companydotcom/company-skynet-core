@@ -1,12 +1,12 @@
-import withContextPrep from '../src/middleware/withContextPrep';
-import middy from '@middy/core';
-import AWS from 'aws-sdk';
-import { Options, getMiddyInternal } from '../src/middleware/sharedTypes';
+import withContextPrep from "../src/middleware/withContextPrep";
+import middy from "@middy/core";
+import AWS from "aws-sdk";
+import { Options, getMiddyInternal } from "../src/middleware/sharedTypes";
 
 AWS.config.update({ region: process.env.region });
 
-const userId = '60ee01f8885a9700717e8d8e';
-const accountId = 'abc3d3d7-61ef-4635-806c-e54016ad7dce';
+const userId = "60ee01f8885a9700717e8d8e";
+const accountId = "abc3d3d7-61ef-4635-806c-e54016ad7dce";
 
 const middlewareToTest = [withContextPrep];
 
@@ -18,27 +18,30 @@ const coreSettings = {
   useThrottling: false,
   maxMessagesPerInstance: 20,
   isBulk: false,
-  eventType: 'fetch',
+  eventType: "fetch",
 } as Options;
 
 const test = async (event: any) => {
   const handler = (data: any) => {
-    console.log('INTERIOR DATA', data);
-    return data.map((m: any) => ({ ...m, workerResp: { res: 'hello world' } }));
+    console.log("INTERIOR DATA", data);
+    return data.map((m: any) => ({ ...m, workerResp: { res: "hello world" } }));
   };
 
   const middifiedHandler = middy(handler);
   middifiedHandler.use(middlewareToTest[0](coreSettings));
   middifiedHandler.use({
     before: async (request) => {
-      const context = await getMiddyInternal(request, [`user-${userId}`, `account-${accountId}`]);
-      console.log('Context should have user and account details');
-      console.log('CONTEXT', context);
+      const context = await getMiddyInternal(request, [
+        `user-${userId}`,
+        `account-${accountId}`,
+      ]);
+      console.log("Context should have user and account details");
+      console.log("CONTEXT", context);
     },
   });
 
   await middifiedHandler(event, {} as any, () => {
-    console.log('did this work');
+    console.log("did this work");
   });
 };
 
@@ -56,19 +59,19 @@ const sampleSkynetMessages = [
         tile: {},
       },
       metadata: {
-        eventType: '/* EVENT NAME */',
-        tileId: 'tile123',
+        eventType: "/* EVENT NAME */",
+        tileId: "tile123",
       },
     },
     msgAttribs: {
-      emitter: 'platform-events',
-      eventId: 'aeab0921-0bdc-4e47-8968-c2b8c2b1a8f2',
-      triggerEventId: '747099bd-48be-42ce-81e1-de80a7212713',
-      entity: 'tile',
-      entityId: 'abc123',
-      operation: 'C',
-      status: 'trigger',
-      eventType: 'fetch',
+      emitter: "platform-events",
+      eventId: "aeab0921-0bdc-4e47-8968-c2b8c2b1a8f2",
+      triggerEventId: "747099bd-48be-42ce-81e1-de80a7212713",
+      entity: "tile",
+      entityId: "abc123",
+      operation: "C",
+      status: "trigger",
+      eventType: "fetch",
     },
     rcptHandle: undefined,
   },
@@ -87,10 +90,10 @@ const run = async () => {
   // }
 
   try {
-    console.log('RUNNING GOOD EVENT');
+    console.log("RUNNING GOOD EVENT");
     await test(sampleSkynetMessages);
   } catch (err) {
-    console.log('This should not have erred', err);
+    console.log("This should not have erred", err);
   }
 };
 

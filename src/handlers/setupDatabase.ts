@@ -1,5 +1,5 @@
-import { batchPutIntoDynamoDb } from '../library/dynamo';
-import { getErrorString } from '../library/util';
+import { batchPutIntoDynamoDb } from "../library/dynamo";
+import { getErrorString } from "../library/util";
 
 /**
  * Sets up the database with the given data
@@ -16,9 +16,9 @@ export const handler = async (AWS: any, data: any, service: string) => {
       configdata: data,
     };
     console.log(`Data being sent ${JSON.stringify([record], null, 4)}`);
-    await batchPutIntoDynamoDb(AWS, [record], 'vendorConfig');
-    console.log('Database has been setup successfully');
-    return 'Database has been setup successfully';
+    await batchPutIntoDynamoDb(AWS, [record], "vendorConfig");
+    console.log("Database has been setup successfully");
+    return "Database has been setup successfully";
   } catch (e) {
     console.log(`bulkTransition: ERROR: ${getErrorString(e)}`);
     throw e;

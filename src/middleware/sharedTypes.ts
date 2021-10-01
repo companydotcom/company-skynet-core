@@ -1,5 +1,5 @@
-import { SQSEvent, ScheduledEvent } from 'aws-lambda';
-import middy from '@middy/core';
+import { SQSEvent, ScheduledEvent } from "aws-lambda";
+import middy from "@middy/core";
 
 export type Context = {
   user: any;
@@ -32,7 +32,7 @@ type MessageAttributes = {
   triggerEventId: string;
   entity: string;
   entityId: string;
-  operation: 'C';
+  operation: "C";
   status: string;
   eventType: string;
 };
@@ -65,7 +65,7 @@ export type ThrottleSettings = {
 
 export type Options = {
   isBulk?: boolean;
-  eventType?: 'transition' | 'fetch';
+  eventType?: "transition" | "fetch";
   service?: string;
   region?: string;
   account?: string;
@@ -75,7 +75,7 @@ export type Options = {
 };
 
 export interface CoreSkynetConfig {
-  eventType: 'fetch' | 'transition' | 'webhook';
+  eventType: "fetch" | "transition" | "webhook";
   isBulk: boolean;
   region: string;
   service: string;
@@ -86,20 +86,20 @@ export interface CoreSkynetConfig {
 }
 
 export type AllowableConfigKeys =
-  | 'eventType'
-  | 'isBulk'
-  | 'region'
-  | 'service'
-  | 'account'
-  | 'useThrottling'
-  | 'throttleOptions'
-  | 'maxMessagesPerInstance';
+  | "eventType"
+  | "isBulk"
+  | "region"
+  | "service"
+  | "account"
+  | "useThrottling"
+  | "throttleOptions"
+  | "maxMessagesPerInstance";
 
 export const addToEventContext = (
   request: middy.Request,
   message: SkynetMessage,
   middlewareName: string,
-  data: any,
+  data: any
 ) => {
   const messageId = message.msgAttribs.eventId;
   if (!request.internal[messageId]) {
@@ -109,36 +109,48 @@ export const addToEventContext = (
   request.internal[messageId][middlewareName] = data;
 };
 
-export const prepareMiddlewareDataForWorker = async (request: middy.Request, message: SkynetMessage) => {
+export const prepareMiddlewareDataForWorker = async (
+  request: middy.Request,
+  message: SkynetMessage
+) => {
   const messageId = message.msgAttribs.eventId;
-  console.log(messageId, 'messageId');
+  console.log(messageId, "messageId");
   if (!request.internal[messageId]) {
-    console.log('no data stored for this message');
+    console.log("no data stored for this message");
     return {};
   }
   const midsInUse = Object.keys(request.internal[messageId]);
-  return midsInUse.reduce((acc: object, midName: string): object => {
+  return midsInUse.reduce((acc: any, midName: string): any => {
     const midData = request.internal[messageId][midName];
     const dataKeys = Object.keys(midData);
     dataKeys.forEach((key: string) => {
       if (acc.hasOwnProperty(key)) {
         console.warn(
-          `Middleware data key ${key} in middleware ${midName} collides with another middleware's data key.  This is not permitted`,
+          `Middleware data key ${key} in middleware ${midName} collides with another middleware's data key.  This is not permitted`
         );
       } else {
-        Object.assign(acc, { [key]: request.internal[messageId][midName][key] });
+        Object.assign(acc, {
+          [key]: request.internal[messageId][midName][key],
+        });
       }
     });
     return acc;
   }, {} as any);
 };
 
-export const setMiddyInternal = (request: middy.Request, key: string, value: any) => {
+export const setMiddyInternal = (
+  request: middy.Request,
+  key: string,
+  value: any
+) => {
   request.internal[key] = value;
 };
 
 // Internal Context
-export const getMiddyInternal = async (request: middy.Request, variables: Array<string>) => {
+export const getMiddyInternal = async (
+  request: middy.Request,
+  variables: Array<string>
+) => {
   if (!variables || !request) return {};
   let keys = [] as any[];
   let values = [] as any[];
@@ -149,18 +161,23 @@ export const getMiddyInternal = async (request: middy.Request, variables: Array<
     promises.push(
       valuePromise && valuePromise.then
         ? valuePromise.catch((err: any) => ({
-            status: 'rejected',
+            status: "rejected",
             reason: {
               message: err,
             },
           }))
-        : valuePromise,
+        : valuePromise
     );
   });
   // ensure promise has resolved by the time it's needed
   // If one of the promises throws it will bubble up to @middy/core
   values = (await Promise.all(promises)) as any[];
-  const errors = values.filter((res: any) => res.status === 'rejected').map((res: any) => res.reason.message);
+  const errors = values
+    .filter((res: any) => res.status === "rejected")
+    .map((res: any) => res.reason.message);
   if (errors.length) throw new Error(JSON.stringify(errors));
-  return keys.reduce((obj, key, index) => ({ ...obj, [key]: values[index] }), {});
+  return keys.reduce(
+    (obj, key, index) => ({ ...obj, [key]: values[index] }),
+    {}
+  );
 };

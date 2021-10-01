@@ -1,5 +1,5 @@
-import { fetchRecordsByQuery, incrementColumn } from './dynamo';
-import { sleep } from './util';
+import { fetchRecordsByQuery, incrementColumn } from "./dynamo";
+import { sleep } from "./util";
 
 /**
  * Fetches and returns the number of calls made to the service for the given
@@ -21,9 +21,12 @@ export const getCallsMade = async (AWS: any, serviceName: string) => {
 
   // Construct the common properties for the next queries
   const queryObj = {
-    TableName: 'apiCallCount',
-    ExpressionAttributeNames: { '#pk': 'serviceAndDuration', '#et': 'expiryTime' },
-    KeyConditionExpression: '#pk = :sd AND #et = :et',
+    TableName: "apiCallCount",
+    ExpressionAttributeNames: {
+      "#pk": "serviceAndDuration",
+      "#et": "expiryTime",
+    },
+    KeyConditionExpression: "#pk = :sd AND #et = :et",
   };
 
   // Generate a list of promises to get the records for current second, minute,
@@ -32,29 +35,29 @@ export const getCallsMade = async (AWS: any, serviceName: string) => {
     fetchRecordsByQuery(AWS, {
       ...queryObj,
       ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-second` },
-        ':et': { N: currSec.toString() },
+        ":sd": { S: `${serviceName}-second` },
+        ":et": { N: currSec.toString() },
       },
     }),
     fetchRecordsByQuery(AWS, {
       ...queryObj,
       ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-minute` },
-        ':et': { N: currMin.toString() },
+        ":sd": { S: `${serviceName}-minute` },
+        ":et": { N: currMin.toString() },
       },
     }),
     fetchRecordsByQuery(AWS, {
       ...queryObj,
       ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-hour` },
-        ':et': { N: currHr.toString() },
+        ":sd": { S: `${serviceName}-hour` },
+        ":et": { N: currHr.toString() },
       },
     }),
     fetchRecordsByQuery(AWS, {
       ...queryObj,
       ExpressionAttributeValues: {
-        ':sd': { S: `${serviceName}-day` },
-        ':et': { N: currDay.toString() },
+        ":sd": { S: `${serviceName}-day` },
+        ":et": { N: currDay.toString() },
       },
     }),
   ];
@@ -89,10 +92,15 @@ type arg = {
  */
 export const getAvailableCallsThisSec = async (
   AWS: any,
-  { throttleLmts, safeThrottleLimit, reserveCapForDirect, retryCntForCapacity }: arg,
+  {
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
+    retryCntForCapacity,
+  }: arg,
   serviceName: string,
   bulk = true,
-  iter = 0,
+  iter = 0
 ): Promise<number> => {
   if (iter > retryCntForCapacity) {
     return 0;
@@ -103,30 +111,45 @@ export const getAvailableCallsThisSec = async (
   }
   const throtLmts = JSON.parse(throttleLmts);
   if (
-    typeof throtLmts.day === 'undefined' &&
-    typeof throtLmts.hour === 'undefined' &&
-    typeof throtLmts.minute === 'undefined' &&
-    typeof throtLmts.second === 'undefined'
+    typeof throtLmts.day === "undefined" &&
+    typeof throtLmts.hour === "undefined" &&
+    typeof throtLmts.minute === "undefined" &&
+    typeof throtLmts.second === "undefined"
   ) {
     return 1000000;
   }
 
-  const resFact = bulk === true ? (1 - reserveCapForDirect) * safeThrottleLimit : 1 * safeThrottleLimit;
+  const resFact =
+    bulk === true
+      ? (1 - reserveCapForDirect) * safeThrottleLimit
+      : 1 * safeThrottleLimit;
   const callsMade = await getCallsMade(AWS, serviceName);
   let availLmt = Number.MAX_SAFE_INTEGER;
-  if (typeof throtLmts.day !== 'undefined' && Math.floor(throtLmts.day * resFact - callsMade.day) < availLmt) {
+  if (
+    typeof throtLmts.day !== "undefined" &&
+    Math.floor(throtLmts.day * resFact - callsMade.day) < availLmt
+  ) {
     availLmt = Math.floor((throtLmts.day - callsMade.day) * resFact);
   }
 
-  if (typeof throtLmts.hour !== 'undefined' && Math.floor(throtLmts.hour * resFact - callsMade.hour) < availLmt) {
+  if (
+    typeof throtLmts.hour !== "undefined" &&
+    Math.floor(throtLmts.hour * resFact - callsMade.hour) < availLmt
+  ) {
     availLmt = Math.floor((throtLmts.hour - callsMade.hour) * resFact);
   }
 
-  if (typeof throtLmts.minute !== 'undefined' && Math.floor(throtLmts.minute * resFact - callsMade.minute) < availLmt) {
+  if (
+    typeof throtLmts.minute !== "undefined" &&
+    Math.floor(throtLmts.minute * resFact - callsMade.minute) < availLmt
+  ) {
     availLmt = Math.floor((throtLmts.minute - callsMade.minute) * resFact);
   }
 
-  if (typeof throtLmts.second !== 'undefined' && Math.floor(throtLmts.second * resFact - callsMade.second) < availLmt) {
+  if (
+    typeof throtLmts.second !== "undefined" &&
+    Math.floor(throtLmts.second * resFact - callsMade.second) < availLmt
+  ) {
     availLmt = Math.floor((throtLmts.second - callsMade.second) * resFact);
   }
 
@@ -142,7 +165,7 @@ export const getAvailableCallsThisSec = async (
         },
         serviceName,
         bulk,
-        iter + 1,
+        iter + 1
       );
 };
 
@@ -154,7 +177,11 @@ export const getAvailableCallsThisSec = async (
  * @param {Number} incVal is the increment value. Defaults to 1
  * @returns {Boolean}
  */
-export const incrementUsedCount = async (AWS: any, serviceName: string, incVal = 1) => {
+export const incrementUsedCount = async (
+  AWS: any,
+  serviceName: string,
+  incVal = 1
+) => {
   const currMs = Date.now();
   const currSec = Math.floor(currMs / 1000) + 1;
   const currMin = currSec - (currSec % 60) + 60;
@@ -164,43 +191,43 @@ export const incrementUsedCount = async (AWS: any, serviceName: string, incVal =
   const proms = [
     incrementColumn(
       AWS,
-      'apiCallCount',
+      "apiCallCount",
       {
         serviceAndDuration: `${serviceName}-second`,
         expiryTime: currSec,
       },
-      'callCount',
-      incVal,
+      "callCount",
+      incVal
     ),
     incrementColumn(
       AWS,
-      'apiCallCount',
+      "apiCallCount",
       {
         serviceAndDuration: `${serviceName}-minute`,
         expiryTime: currMin,
       },
-      'callCount',
-      incVal,
+      "callCount",
+      incVal
     ),
     incrementColumn(
       AWS,
-      'apiCallCount',
+      "apiCallCount",
       {
         serviceAndDuration: `${serviceName}-hour`,
         expiryTime: currHr,
       },
-      'callCount',
-      incVal,
+      "callCount",
+      incVal
     ),
     incrementColumn(
       AWS,
-      'apiCallCount',
+      "apiCallCount",
       {
         serviceAndDuration: `${serviceName}-day`,
         expiryTime: currDay,
       },
-      'callCount',
-      incVal,
+      "callCount",
+      incVal
     ),
   ];
   await Promise.all(proms);

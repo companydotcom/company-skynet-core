@@ -12,7 +12,7 @@ export const parseJson = (v: any) => {
 };
 
 export const deepParseJson = (jsonString: any): any => {
-  if (typeof jsonString === 'string') {
+  if (typeof jsonString === "string") {
     if (!isNaN(Number(jsonString))) {
       return jsonString;
     }
@@ -23,7 +23,7 @@ export const deepParseJson = (jsonString: any): any => {
     }
   } else if (Array.isArray(jsonString)) {
     return jsonString.map((val) => deepParseJson(val));
-  } else if (typeof jsonString === 'object' && jsonString !== null) {
+  } else if (typeof jsonString === "object" && jsonString !== null) {
     return Object.keys(jsonString).reduce((obj, key: string) => {
       obj[key] = deepParseJson(jsonString[key]);
       return obj;
@@ -40,13 +40,13 @@ export const deepParseJson = (jsonString: any): any => {
 const getCodeStatus = (code: number) => {
   switch (code) {
     case 200:
-      return 'OK';
+      return "OK";
     case 201:
-      return 'Created';
+      return "Created";
     case 400:
-      return 'Bad Request';
+      return "Bad Request";
     case 500:
-      return 'Internal Server Error';
+      return "Internal Server Error";
     default:
       return undefined;
   }
@@ -67,11 +67,11 @@ const getCodeStatus = (code: number) => {
  */
 export const formatHttpResponse = (code: number, input: any, result: any) => {
   const status = getCodeStatus(code);
-  const resp = `HTTP Resp: ${code}${status ? ` - ${status}` : ''}`;
+  const resp = `HTTP Resp: ${code}${status ? ` - ${status}` : ""}`;
   let resultObj = {} as any;
   if (result instanceof Error) {
     resultObj.error = result.toString();
-  } else if (typeof result === 'object') {
+  } else if (typeof result === "object") {
     resultObj = result;
   } else {
     resultObj.message = result;
@@ -79,8 +79,8 @@ export const formatHttpResponse = (code: number, input: any, result: any) => {
   return {
     statusCode: code,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Credentials": true,
     },
     body: JSON.stringify({
       resp,
@@ -99,7 +99,7 @@ export const getErrorString = (e: any) => {
   if (e instanceof Error) {
     return e.toString();
   }
-  if (typeof e === 'object') {
+  if (typeof e === "object") {
     return JSON.stringify(e, null, 4);
   }
   return e;
@@ -112,30 +112,22 @@ export const getErrorString = (e: any) => {
  * @param {Function} messageHandler
  * @returns {Object}
  */
-export const neverThrowError = async (params: any, messageHandler: Function) => {
+export const neverThrowError = async (
+  params: any,
+  messageHandler: (params: any) => any
+) => {
   const result = {
-    status: 'pass',
+    status: "pass",
     params,
   } as any;
   try {
     result.workerResp = await messageHandler(params);
   } catch (e) {
-    result.status = 'fail';
+    result.status = "fail";
     result.error = getErrorString(e);
   }
   return result;
 };
-
-/**
- * Classis sleep function using async-await
- * @param {Number} s is the number of milliseconds to sleep
- */
-export const sleep = async (s: number) =>
-  new Promise((r: Function) =>
-    setTimeout((): void => {
-      r();
-    }, s),
-  );
 
 /**
  * Checks if the given param exists in the given object
@@ -145,7 +137,20 @@ export const sleep = async (s: number) =>
  */
 // eslint-disable-next-line max-len
 export const itemExists = (obj: any, param: string) =>
-  typeof obj === 'object' && obj !== null ? Object.prototype.hasOwnProperty.call(obj, param) : false;
+  typeof obj === "object" && obj !== null
+    ? Object.prototype.hasOwnProperty.call(obj, param)
+    : false;
+
+/**
+ * Classis sleep function using async-await
+ * @param {Number} s is the number of milliseconds to sleep
+ */
+export const sleep = async (s: any) =>
+  new Promise((r: any) =>
+    setTimeout(() => {
+      r();
+    }, s)
+  );
 
 /**
  * Filters the globalMicroAppData object based on if the service
@@ -155,7 +160,10 @@ export const itemExists = (obj: any, param: string) =>
  * @returns a globalMicroAppData object filtered to just the data points that current service has access to
  * @abstract docs: https://bit.ly/3kdY2w9
  */
-export const evaluateMadsReadAccess = (globalMicroAppData: any, service: string) => {
+export const evaluateMadsReadAccess = (
+  globalMicroAppData: any,
+  service: string
+) => {
   const result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
@@ -163,7 +171,9 @@ export const evaluateMadsReadAccess = (globalMicroAppData: any, service: string)
   Object.entries(globalMicroAppData).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       const eachMadsFiltered = value.filter(
-        (dataPoint) => dataPoint.readAccess.includes(service) || dataPoint.readAccess.includes('*'),
+        (dataPoint) =>
+          dataPoint.readAccess.includes(service) ||
+          dataPoint.readAccess.includes("*")
       );
 
       if (eachMadsFiltered.length) {

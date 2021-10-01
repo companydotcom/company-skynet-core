@@ -1,37 +1,42 @@
-import middy from '@middy/core';
-import { SQSEvent, ScheduledEvent, SNSEvent } from 'aws-lambda';
-import { v4 as uuid } from 'uuid';
-import { getMiddyInternal } from './sharedTypes';
+import middy from "@middy/core";
+import { SQSEvent, ScheduledEvent, SNSEvent } from "aws-lambda";
+import { v4 as uuid } from "uuid";
+import { getMiddyInternal } from "./sharedTypes";
 
-import es from '../library/eventStream';
+import es from "../library/eventStream";
 
 import {
   getMsgsFromQueue,
   parseMsg as sqsParser,
   deleteMsg as deleteMsgFromQueue,
   sendMsg as sendSqsMsg,
-} from '../library/queue';
+} from "../library/queue";
 
-import { HandledSkynetMessage, RawEvent, SkynetMessage, Options } from './sharedTypes';
+import {
+  HandledSkynetMessage,
+  RawEvent,
+  SkynetMessage,
+  Options,
+} from "./sharedTypes";
 
 const defaults = {
   isBulk: false,
-  service: '',
+  service: "",
   AWS: {},
-  region: '',
-  queueName: '',
-  account: '',
+  region: "",
+  queueName: "",
+  account: "",
   maxMessagesPerInstance: 100,
 };
 
 const queueNameMap = {
-  transition: 'bulktq',
-  fetch: 'bulkfq',
+  transition: "bulktq",
+  fetch: "bulkfq",
 };
 
 type SettledOptions = {
   isBulk: boolean;
-  eventType: 'transition' | 'fetch';
+  eventType: "transition" | "fetch";
   service: string;
   region: string;
   account: string;
@@ -43,8 +48,8 @@ type SettledOptions = {
 const getCompleteStatus = (procResult: any) => {
   let result = procResult.status;
   if (
-    Object.prototype.hasOwnProperty.call(procResult, 'workerResp') &&
-    Object.prototype.hasOwnProperty.call(procResult.workerResp, 'extraStatus')
+    Object.prototype.hasOwnProperty.call(procResult, "workerResp") &&
+    Object.prototype.hasOwnProperty.call(procResult.workerResp, "extraStatus")
   ) {
     result = `${result}-${procResult.workerResp.extraStatus}`;
   }
@@ -55,14 +60,16 @@ const handleSingle = async (request: middy.Request) => {
   // If there are no records to process or more than one record to process,
   // throw an error as it is an invalid event
   if (
-    request.event.hasOwnProperty('Records') &&
+    request.event.hasOwnProperty("Records") &&
     Array.isArray(request.event.Records) &&
     request.event.Records.length !== 1
   ) {
     throw new Error(
       `directTransition: ERROR: Lambda was wrongly triggered with ${
-        typeof request.event.Records === 'undefined' ? 0 : request.event.Records.length
-      } records`,
+        typeof request.event.Records === "undefined"
+          ? 0
+          : request.event.Records.length
+      } records`
     );
   }
   request.event = [sqsParser(request.event.Records[0])];
@@ -71,26 +78,36 @@ const handleSingle = async (request: middy.Request) => {
 const handleBulk = async (request: middy.Request, options: SettledOptions) => {
   // check internal for if an "availCap" has been set
   if (options.isBulk) {
-    const throttleResult = await getMiddyInternal(request, ['availCap']);
+    const throttleResult = await getMiddyInternal(request, ["availCap"]);
     const availCap = Math.min(
       options.maxMessagesPerInstance || 500,
-      throttleResult?.availCap || options.maxMessagesPerInstance,
+      throttleResult?.availCap || options.maxMessagesPerInstance
     );
     const messagesToProcess = await getMsgsFromQueue(
       options.AWS,
       options.region,
       availCap,
-      `https://sqs.${options.region}.amazonaws.com/${options.account}/${options.service}-${
-        queueNameMap[options.eventType]
-      }`,
+      `https://sqs.${options.region}.amazonaws.com/${options.account}/${
+        options.service
+      }-${queueNameMap[options.eventType]}`
     );
-    console.log(`bulkTransition: INFO: Processing event ${JSON.stringify(messagesToProcess.length, null, 4)}`);
+    console.log(
+      `bulkTransition: INFO: Processing event ${JSON.stringify(
+        messagesToProcess.length,
+        null,
+        4
+      )}`
+    );
 
     request.event = messagesToProcess.map((m: SNSEvent) => sqsParser(m));
   }
 };
 
-const sendToDlq = async (message: SkynetMessage, options: SettledOptions, error: Error | null) => {
+const sendToDlq = async (
+  message: SkynetMessage,
+  options: SettledOptions,
+  error: Error | null
+) => {
   const { region, account, service, AWS } = options;
   const { msgBody, msgAttribs } = message;
   await sendSqsMsg(
@@ -104,7 +121,7 @@ const sendToDlq = async (message: SkynetMessage, options: SettledOptions, error:
         MessageAttributes: msgAttribs,
         Error: error,
       },
-    }),
+    })
   );
 };
 
@@ -116,20 +133,25 @@ function isSqsEvent(obj: any): obj is SQSEvent {
   return obj.Records !== undefined;
 }
 
-const withMessageProcessing = (opt: Options): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
+const withMessageProcessing = (
+  opt: Options
+): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
   const options = { ...defaults, ...opt } as SettledOptions;
 
-  const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
-    if (isScheduledEvent(request.event) && options.isBulk) {
-      await handleBulk(request, options);
-    } else if (isSqsEvent(request.event)) {
-      await handleSingle(request);
-    } else {
-      throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
-    }
-  };
+  const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
+    async (request): Promise<void> => {
+      if (isScheduledEvent(request.event) && options.isBulk) {
+        await handleBulk(request, options);
+      } else if (isSqsEvent(request.event)) {
+        await handleSingle(request);
+      } else {
+        throw "Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations";
+      }
+    };
 
-  const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
+  const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
+    request
+  ): Promise<void> => {
     const { AWS, region, account, service } = options;
 
     const handledMessages = request.response;
@@ -138,18 +160,18 @@ const withMessageProcessing = (opt: Options): middy.MiddlewareObj<RawEvent, [Han
         handledMessages.map(async (message: HandledSkynetMessage) => {
           const { rcptHandle, msgAttribs, workerResp, msgBody } = message;
           // Delete the message from the queue using the rcptHandle, if available.
-          if (typeof rcptHandle !== 'undefined') {
+          if (typeof rcptHandle !== "undefined") {
             await deleteMsgFromQueue(
               AWS,
               region,
-              msgAttribs.eventType === 'transition'
+              msgAttribs.eventType === "transition"
                 ? `https://sqs.${region}.amazonaws.com/${account}/${service}-bulktq`
                 : `https://sqs.${region}.amazonaws.com/${account}/${service}-bulkfq`,
-              rcptHandle,
+              rcptHandle
             );
           }
 
-          if (workerResp.status && workerResp.status === 'fail') {
+          if (workerResp.status && workerResp.status === "fail") {
             sendToDlq(message, options, workerResp.error);
           }
 
@@ -167,20 +189,22 @@ const withMessageProcessing = (opt: Options): middy.MiddlewareObj<RawEvent, [Han
               status: getCompleteStatus(workerResp),
               eventId: uuid(),
               emitter: service,
-            },
+            }
           );
-        }),
+        })
       );
     }
   };
 
-  const onError: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (request): Promise<void> => {
+  const onError: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
+    request
+  ): Promise<void> => {
     if (request.response && request.response.length) {
       const handledMessages = request.response;
       await Promise.all(
         handledMessages.map(async (m) => {
           await sendToDlq(m, options, request.error);
-        }),
+        })
       );
     }
   };
