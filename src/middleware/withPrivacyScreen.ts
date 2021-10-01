@@ -49,11 +49,18 @@ const createWithPrivacyScreen = (
           `user-${userId}`,
           `account-${accountId}`,
         ]);
-
-        delete context[`user-${userId}`].vendorData;
-        delete context[`user-${userId}`].globalMicroAppData;
-        delete context[`account-${accountId}`].vendorData;
-        delete context[`account-${accountId}`].globalMicroAppData;
+        if (context[`user-${userId}`]) {
+          delete context[`user-${userId}`].vendorData;
+          delete context[`user-${userId}`].globalMicroAppData;
+        } else {
+          console.log('User', userId, 'not found in DB');
+        }
+        if (context[`account-${accountId}`]) {
+          delete context[`account-${accountId}`].vendorData;
+          delete context[`account-${accountId}`].globalMicroAppData;
+        } else {
+          console.log('Account', accountId, 'not found in DB');
+        }
 
         return {
           message: {
@@ -61,8 +68,12 @@ const createWithPrivacyScreen = (
             metadata: m.msgBody.metadata,
             context: {
               ...m.msgBody.context,
-              user: context[`user-${userId}`],
-              account: context[`account-${accountId}`],
+              ...(context[`user-${userId}`]
+                ? { user: context[`user-${userId}`] }
+                : {}),
+              ...(context[`account-${accountId}`]
+                ? { account: context[`account-${accountId}`] }
+                : {}),
             },
           },
           attributes: m.msgAttribs,

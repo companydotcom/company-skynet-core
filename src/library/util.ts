@@ -321,9 +321,15 @@ export const getMiddyInternal = async (
       valuePromise = Promise.resolve(valuePromise);
     }
     promises.push(
-      valuePromise.then((value: any) =>
-        pathOptionKey.reduce((p: any, c: any) => p?.[c], value)
-      )
+      valuePromise
+        .then((value: any) =>
+          pathOptionKey.reduce((p: any, c: any) => p?.[c], value)
+        )
+        .then((value: any) => ({ value }))
+        .catch((err: Error) => ({
+          status: 'rejected',
+          reason: { message: getErrorString(err) },
+        }))
     );
   }
   // ensure promise has resolved by the time it's needed
@@ -334,7 +340,7 @@ export const getMiddyInternal = async (
     .map((res) => res.reason.message);
   if (errors.length) throw new Error(JSON.stringify(errors));
   return keys.reduce(
-    (obj, key, index) => ({ ...obj, [key]: values[index] }),
+    (obj, key, index) => ({ ...obj, [key]: values[index].value }),
     {}
   );
 };

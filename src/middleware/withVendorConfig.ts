@@ -25,7 +25,7 @@ const createWithVendorConfig = (
         ExpressionAttributeValues: {
           ':serv': { S: `${options.service}` },
         },
-      });
+      }).then((items: any[]) => items[0].configdata);
     };
 
   return {
