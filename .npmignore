@@ -1,4 +1,16 @@
 src
 .eslintrc
+.prettierrc.js
+.vscode
+.husky
+webpack.config.ts
+yarn.lock
 package-lock.json
-webpack.config.js
+.eslintcache
+yarn-error.log
+tsconfig.json
+.prettierignore
+.gitignore
+.eslintignore
+
+.yarn/*

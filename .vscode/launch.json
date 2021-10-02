@@ -1,0 +1,95 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Lambda",
+      "type": "node",
+      "request": "launch",
+      "runtimeArgs": ["--inspect", "--debug-port=9229"],
+      "program": "${workspaceFolder}/node_modules/serverless/bin/serverless",
+      "args": ["offline"],
+      "port": 9229,
+      "console": "integratedTerminal"
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "Package Tile Transitions",
+      "program": "${workspaceFolder}/lib/tests/test-withMessageProcessing.js",
+      "env": {
+        "region": "us-east-1"
+      }
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withMessageProcessing",
+      "program": "${workspaceFolder}/lib/tests/test-withMessageProcessing.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withContextPrep",
+      "program": "${workspaceFolder}/lib/tests/test-withContextPrep.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withVendorConfig",
+      "program": "${workspaceFolder}/lib/tests/test-withVendorConfig.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withCrmData",
+      "program": "${workspaceFolder}/lib/tests/test-withCrmData.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withMads",
+      "program": "${workspaceFolder}/lib/tests/test-withMads.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withServiceData",
+      "program": "${workspaceFolder}/lib/tests/test-withServiceData.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "withThrottling",
+      "program": "${workspaceFolder}/lib/tests/test-withThrottling.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json",
+      "outFiles": ["${workspaceFolder}/lib/**/*.js"]
+    }
+  ]
+}

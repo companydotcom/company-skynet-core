@@ -1,0 +1,10 @@
+node_modules
+*.config.ts
+dist/
+.husky/
+yarn-error.log
+yarn.lock
+
+.yarn/*
+lib/
+webpack.config.js
