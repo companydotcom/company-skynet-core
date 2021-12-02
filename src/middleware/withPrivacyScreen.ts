@@ -79,7 +79,7 @@ const createWithPrivacyScreen = (
           attributes: m.msgAttribs,
           rcptHandle: m.rcptHandle,
           serviceConfigData: data.vendorConfig,
-          ...prepareMiddlewareDataForWorker(request, m),
+          ...await prepareMiddlewareDataForWorker(request, m),
         };
       })
     );
