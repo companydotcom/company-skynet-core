@@ -25,6 +25,9 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
       ':accId': { S: accountId },
     },
   });
+  if(typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+    delete fetchResponse[0].globalMicroAppData;
+  }
   return fetchResponse[0];
 };
 
@@ -42,6 +45,9 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
       ':uId': { S: userId },
     },
   });
+  if(typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+    delete fetchResponse[0].globalMicroAppData;
+  }
   return fetchResponse[0];
 };
 
