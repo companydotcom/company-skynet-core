@@ -52,117 +52,122 @@ const createWithMads = (
   const internalMadsCache = {} as any;
   const { AWS, service } = options;
 
-  const before: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> =
-    async (request): Promise<void> => {
-      if (options.debugMode) {
-        console.log('before', middlewareName);
-      }
-      const { service, AWS } = options;
-      await Promise.all(
-        request.event.map(async (m: SkynetMessage) => {
-          const userId: string = _get(
-            m,
-            ['msgBody', 'context', 'user', 'userId'],
-            ''
-          );
-          const accountId: string = _get(
-            m,
-            ['msgBody', 'context', 'user', 'accountId'],
-            ''
-          );
+  const before: middy.MiddlewareFn<
+    SkynetMessage[],
+    HandledSkynetMessage[]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('before', middlewareName);
+    }
+    const { service, AWS } = options;
+    await Promise.all(
+      request.event.map(async (m: SkynetMessage) => {
+        const userId: string = _get(
+          m,
+          ['msgBody', 'context', 'user', 'userId'],
+          ''
+        );
+        const accountId: string = _get(
+          m,
+          ['msgBody', 'context', 'user', 'accountId'],
+          ''
+        );
 
-          const [internalAccountMads, internalUserMads] =
-            await Promise.all([
-              getInternalAccountMads(AWS, accountId),
-              getInternalUserMads(AWS, userId),
-            ]);
+        const [internalAccountMads, internalUserMads] = await Promise.all([
+          getInternalAccountMads(AWS, accountId),
+          getInternalUserMads(AWS, userId),
+        ]);
 
-          Object.assign(
-            internalMadsCache,
-            internalUserMads
-              ? {
-                  [userId]: internalUserMads,
-                }
-              : {
-                  [userId]: { userId },
-                }
-          );
-          Object.assign(
-            internalMadsCache,
-            internalAccountMads
-              ? {
-                  [accountId]: internalAccountMads,
-                }
-              : {
-                  [accountId]: { accountId },
-                }
-          );
+        Object.assign(
+          internalMadsCache,
+          internalUserMads
+            ? {
+                [userId]: internalUserMads,
+              }
+            : {
+                [userId]: { userId },
+              }
+        );
+        Object.assign(
+          internalMadsCache,
+          internalAccountMads
+            ? {
+                [accountId]: internalAccountMads,
+              }
+            : {
+                [accountId]: { accountId },
+              }
+        );
 
-          // * Evaluate data of user from user-mads and
-          // * internal - account - mads. Put in the data owned by the
-          // * service in internalMicroAppData. This data is writeable by
-          // * service. Put all data shared with the application from readAccess
-          // * mentioning the service or '*' into sharedMicroAppData.
-          const internalMicroAppData = {
-            user: {} as any,
-            account: {} as any,
-          };
+        // * Evaluate data of user from user-mads and
+        // * internal - account - mads. Put in the data owned by the
+        // * service in internalMicroAppData. This data is writeable by
+        // * service. Put all data shared with the application from readAccess
+        // * mentioning the service or '*' into sharedMicroAppData.
+        const internalMicroAppData = {
+          user: {} as any,
+          account: {} as any,
+        };
 
-          const sharedMicroAppData = {
-            user: {} as any,
-            account: {} as any,
-          };
+        const sharedMicroAppData = {
+          user: {} as any,
+          account: {} as any,
+        };
 
-          // * Evaluate and transform internal MADS
-          const serviceUserMads = transformMadsToReadFormat({
-            [service]: _get(internalUserMads, service)
-          });
-          const serviceAccountMads = transformMadsToReadFormat({
-            [service]: _get(internalAccountMads, service)
-          });
+        // * Evaluate and transform internal MADS
+        const serviceUserMads = transformMadsToReadFormat({
+          [service]: _get(internalUserMads, service),
+        });
+        const serviceAccountMads = transformMadsToReadFormat({
+          [service]: _get(internalAccountMads, service),
+        });
 
-          internalMicroAppData.user = !_isundefined(serviceUserMads[service])
-            ? serviceUserMads[service]
-            : {};
-          
-          internalMicroAppData.account = !_isundefined(serviceAccountMads[service])
-            ? serviceAccountMads[service]
-            : {};
+        internalMicroAppData.user = !_isundefined(serviceUserMads[service])
+          ? serviceUserMads[service]
+          : {};
 
-          // * Remove the service owned data from sharedMicroAppData as it is
-          // * already available in internalUserMads and internalAccountMads
-          sharedMicroAppData.account = transformMadsToReadFormat(
-            evaluateMadsReadAccess(
-              Object.keys(internalAccountMads)
-                .filter(key => key !== service)
-                .reduce((obj, key) => {
-                  return {
-                    ...obj,
-                    [key]: internalAccountMads[key]
-                  };
-                }, {}),
-              service)
-          );
-          sharedMicroAppData.user = transformMadsToReadFormat(
-            evaluateMadsReadAccess(
-              Object.keys(internalUserMads)
-                .filter(key => key !== service)
-                .reduce((obj, key) => {
-                  return {
-                    ...obj,
-                    [key]: internalUserMads[key]
-                  };
-                }, {}),
-              service)
-          );
+        internalMicroAppData.account = !_isundefined(
+          serviceAccountMads[service]
+        )
+          ? serviceAccountMads[service]
+          : {};
 
-          addToEventContext(request, m, middlewareName, {
-            internalMicroAppData,
-            sharedMicroAppData,
-          });
-        })
-      );
-    };
+        // * Remove the service owned data from sharedMicroAppData as it is
+        // * already available in internalUserMads and internalAccountMads
+        sharedMicroAppData.account = transformMadsToReadFormat(
+          evaluateMadsReadAccess(
+            Object.keys(internalAccountMads)
+              .filter((key) => key !== service)
+              .reduce((obj, key) => {
+                return {
+                  ...obj,
+                  [key]: internalAccountMads[key],
+                };
+              }, {}),
+            service
+          )
+        );
+        sharedMicroAppData.user = transformMadsToReadFormat(
+          evaluateMadsReadAccess(
+            Object.keys(internalUserMads)
+              .filter((key) => key !== service)
+              .reduce((obj, key) => {
+                return {
+                  ...obj,
+                  [key]: internalUserMads[key],
+                };
+              }, {}),
+            service
+          )
+        );
+
+        addToEventContext(request, m, middlewareName, {
+          internalMicroAppData,
+          sharedMicroAppData,
+        });
+      })
+    );
+  };
 
   const processWorkerResponseMads = async (
     m: HandledSkynetMessage,
@@ -244,11 +249,7 @@ const createWithMads = (
       // * Overwrite current MADS with the process worker response MADS
       internalUserMads[service] = userMads;
 
-      await batchPutIntoDynamoDb(
-        AWS,
-        [internalUserMads],
-        'user-mads'
-      );
+      await batchPutIntoDynamoDb(AWS, [internalUserMads], 'user-mads');
     }
 
     // * account MADS from the process worker response, then overwrite any changes
@@ -288,26 +289,24 @@ const createWithMads = (
       // * Overwrite current MADS with the process worker response MADS
       internalAccountMads[service] = accountMads;
 
-      await batchPutIntoDynamoDb(
-        AWS,
-        [internalAccountMads],
-        'account-mads'
-      );
+      await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'account-mads');
     }
   };
 
-  const after: middy.MiddlewareFn<SkynetMessage[], HandledSkynetMessage[]> =
-    async (request): Promise<void> => {
-      if (options.debugMode) {
-        console.log('after', middlewareName);
-      }
-      // set changes to serviceUserData/serviceAccountData
-      if (request.response) {
-        await Promise.all(
-          request.response.map((m) => processWorkerResponseMads(m, request))
-        );
-      }
-    };
+  const after: middy.MiddlewareFn<
+    SkynetMessage[],
+    HandledSkynetMessage[]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('after', middlewareName);
+    }
+    // set changes to serviceUserData/serviceAccountData
+    if (request.response) {
+      await Promise.all(
+        request.response.map((m) => processWorkerResponseMads(m, request))
+      );
+    }
+  };
 
   return {
     before,
