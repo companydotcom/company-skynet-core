@@ -20,14 +20,20 @@ const createWithVendorConfig = (
     }
     console.log('Service name:', options.service);
     // Use ids to pull context
-    request.internal.vendorConfig = await fetchRecordsByQuery(options.AWS, {
+    request.internal.vendorConfig = fetchRecordsByQuery(options.AWS, {
       TableName: 'vendorConfig',
       ExpressionAttributeNames: { '#pk': 'service' },
       KeyConditionExpression: '#pk = :serv',
       ExpressionAttributeValues: {
         ':serv': { S: `${options.service}` },
       },
-    }).then((items: any[]) => items[0].configdata);
+    })
+      .then((items: any[]) => items[0].configdata)
+      .catch(() => {
+        throw new Error(
+          'Error fetching vendor config data. Is something wrong with service config in database?'
+        );
+      });
   };
 
   return {
