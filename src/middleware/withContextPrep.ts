@@ -25,6 +25,9 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
       ':accId': { S: accountId },
     },
   });
+  if (typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+    delete fetchResponse[0].globalMicroAppData;
+  }
   return fetchResponse[0];
 };
 
@@ -42,6 +45,9 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
       ':uId': { S: userId },
     },
   });
+  if (typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+    delete fetchResponse[0].globalMicroAppData;
+  }
   return fetchResponse[0];
 };
 
@@ -50,31 +56,33 @@ const createWithContextPrep = (
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
   const middlewareName = 'withContextPrep';
   const options = { ...defaults, ...opt };
-  const before: middy.MiddlewareFn<[SkynetMessage], [HandledSkynetMessage]> =
-    async (request): Promise<void> => {
-      if (options.debugMode) {
-        console.log('before', middlewareName);
+  const before: middy.MiddlewareFn<
+    [SkynetMessage],
+    [HandledSkynetMessage]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('before', middlewareName);
+    }
+    request.event.map(async (m) => {
+      const userId = m.msgBody.context.user.userId;
+      const accountId = m.msgBody.context.user.accountId;
+      if (!userId || !accountId) {
+        throw new Error(
+          'Messages using "withContextPrep" must include a userId and accountId on the context.user object'
+        );
       }
-      request.event.map(async (m) => {
-        const userId = m.msgBody.context.user.userId;
-        const accountId = m.msgBody.context.user.accountId;
-        if (!userId || !accountId) {
-          throw new Error(
-            'Messages using "withContextPrep" must include a userId and accountId on the context.user object'
-          );
-        }
-        request.internal[`user-${userId}`] = getCurrentUserData(
-          options.AWS,
-          userId
-        );
-        const account = getCurrentAccountData(options.AWS, accountId);
-        request.internal[`account-${accountId}`] = account;
-        m.msgBody.context.user.account = account;
-        console.log(
-          `Fetching latest User: ${userId} and Account: ${accountId} for this message`
-        );
-      });
-    };
+      request.internal[`user-${userId}`] = getCurrentUserData(
+        options.AWS,
+        userId
+      );
+      const account = getCurrentAccountData(options.AWS, accountId);
+      request.internal[`account-${accountId}`] = account;
+      m.msgBody.context.user.account = account;
+      console.log(
+        `Fetching latest User: ${userId} and Account: ${accountId} for this message`
+      );
+    });
+  };
 
   return {
     before,

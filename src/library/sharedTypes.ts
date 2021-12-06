@@ -92,6 +92,7 @@ export interface CoreSkynetConfig {
   maxMessagesPerInstance?: number;
   debugMode?: boolean;
   useMads?: boolean;
+  hasServiceConfig?: boolean;
 }
 
 export type AllowableConfigKeys =

@@ -158,22 +158,22 @@ export const sleep = async (s: any) =>
   );
 
 /**
- * Filters the globalMicroAppData object based on if the service
+ * Filters the internalMicroAppData object based on if the service
  * is included in the readAccess array of item or not.
- * @param {Object: raw MADS} globalMicroAppData the object as is from the Account, or User tables
+ * @param {Object: raw MADS} internalMicroAppData the object as is from the Account, or User tables
  * @param {String} service the service name (serverless name) of the current processing service
- * @returns a globalMicroAppData object filtered to just the data points that current service has access to
+ * @returns a internalMicroAppData object filtered to just the data points that current service has access to
  * @abstract docs: https://bit.ly/3kdY2w9
  */
 export const evaluateMadsReadAccess = (
-  globalMicroAppData: any,
+  internalMicroAppData: any,
   service: string
 ) => {
   const result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
   // * value = data store array (ex. [{key: 'a', value: {}, readAccess: ['*']}, ...])
-  Object.entries(globalMicroAppData).forEach(([key, value]) => {
+  Object.entries(internalMicroAppData).forEach(([key, value]) => {
     if (Array.isArray(value)) {
       const eachMadsFiltered = value.filter(
         (dataPoint) =>
@@ -186,17 +186,16 @@ export const evaluateMadsReadAccess = (
       }
     }
   });
-
   return result;
 };
 
 /**
  * Transforms a raw MADS object to readable object, without array data points, or readAccess arrays.
- * @param {Object: raw MADS} mads the object as is from the Account, User, internal-user-mads or internal-account-mads tables
+ * @param {Object: raw MADS} mads the object as is from the Account, User, user-mads or account-mads tables
  * @returns a readable MADS object.
  * @abstract docs: https://bit.ly/3kdY2w9
  */
-export const transformMadsToReadFormat = (mads: any) => {
+export const transformMadsToReadFormat = (mads: any = {}) => {
   const result = {} as any;
 
   // * key = mads service name (ex. 'gmb-svc')
@@ -211,7 +210,6 @@ export const transformMadsToReadFormat = (mads: any) => {
       result[key] = eachMadsReduced;
     }
   });
-
   return result;
 };
 
@@ -235,19 +233,6 @@ export const findDuplicateMadsKeys = (mads: any) => {
   });
 
   return duplicateKey || null;
-};
-
-/**
- * Filters MADS array from the process worker response into two new array
- * global and internal
- * @param {Object: worker response MADS} mads from the process worker response
- * @returns {Array: [internalMads, globalMads]}
- */
-export const filterMadsByReadAccess = (mads: any) => {
-  const internalMads = mads.filter((item: any) => item.readAccess.length === 0);
-  const globalMads = mads.filter((item: any) => item.readAccess.length > 0);
-
-  return [internalMads, globalMads];
 };
 
 export const addToEventContext = (

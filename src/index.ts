@@ -115,9 +115,17 @@ export const useSkynet = (
         withContextPrep(
           createTailoredOptions(['debugMode'], skynetConfig, AWS)
         ),
-        withVendorConfig(
-          createTailoredOptions(['service', 'debugMode'], skynetConfig, AWS)
-        ),
+        ...(skynetConfig.hasServiceConfig
+          ? [
+              withVendorConfig(
+                createTailoredOptions(
+                  ['service', 'debugMode'],
+                  skynetConfig,
+                  AWS
+                )
+              ),
+            ]
+          : []),
         ...(skynetConfig.useMads
           ? [
               withServiceData(

@@ -140,20 +140,22 @@ const withMessageProcessing = (
   const middlewareName = 'withMessageProcessing';
   const options = { ...defaults, ...opt } as SettledOptions;
 
-  const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
-    async (request): Promise<void> => {
-      if (options.debugMode) {
-        console.log('before', middlewareName);
-        console.log('TRIGGER EVENT:', request.event);
-      }
-      if (isScheduledEvent(request.event) && options.isBulk) {
-        await handleBulk(request, options);
-      } else if (isSqsEvent(request.event)) {
-        await handleSingle(request);
-      } else {
-        throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
-      }
-    };
+  const sqsBefore: middy.MiddlewareFn<
+    RawEvent,
+    [HandledSkynetMessage]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('before', middlewareName);
+      console.log('TRIGGER EVENT:', request.event);
+    }
+    if (isScheduledEvent(request.event) && options.isBulk) {
+      await handleBulk(request, options);
+    } else if (isSqsEvent(request.event)) {
+      await handleSingle(request);
+    } else {
+      throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
+    }
+  };
 
   const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
     request

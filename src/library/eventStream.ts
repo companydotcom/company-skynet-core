@@ -119,7 +119,7 @@ export default {
       console.log('SNS Publish - Success: ', JSON.stringify(params));
       return res;
     } catch (err) {
-      console.log('SNS Publish - Failure: ', err.toString());
+      console.log('SNS Publish - Failure: ', (err as Error).toString());
       return err;
     }
   },

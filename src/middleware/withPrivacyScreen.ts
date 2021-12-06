@@ -50,14 +50,29 @@ const createWithPrivacyScreen = (
           `account-${accountId}`,
         ]);
         if (context[`user-${userId}`]) {
-          delete context[`user-${userId}`].vendorData;
-          delete context[`user-${userId}`].globalMicroAppData;
+          if (typeof context[`user-${userId}`].vendorData !== 'undefined') {
+            delete context[`user-${userId}`].vendorData;
+          }
+          if (
+            typeof context[`user-${userId}`].globalMicroAppData !== 'undefined'
+          ) {
+            delete context[`user-${userId}`].globalMicroAppData;
+          }
         } else {
           console.log('User', userId, 'not found in DB');
         }
         if (context[`account-${accountId}`]) {
-          delete context[`account-${accountId}`].vendorData;
-          delete context[`account-${accountId}`].globalMicroAppData;
+          if (
+            typeof context[`account-${accountId}`].vendorData !== 'undefined'
+          ) {
+            delete context[`account-${accountId}`].vendorData;
+          }
+          if (
+            typeof context[`account-${accountId}`].globalMicroAppData !==
+            'undefined'
+          ) {
+            delete context[`account-${accountId}`].globalMicroAppData;
+          }
         } else {
           console.log('Account', accountId, 'not found in DB');
         }
@@ -79,7 +94,7 @@ const createWithPrivacyScreen = (
           attributes: m.msgAttribs,
           rcptHandle: m.rcptHandle,
           serviceConfigData: data.vendorConfig,
-          ...await prepareMiddlewareDataForWorker(request, m),
+          ...(await prepareMiddlewareDataForWorker(request, m)),
         };
       })
     );
