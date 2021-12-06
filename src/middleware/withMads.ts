@@ -1,6 +1,7 @@
 import middy from '@middy/core';
 import _get from 'lodash/get';
 import _isundefined from 'lodash/isUndefined';
+import _isnull from 'lodash/isNull';
 import {
   SkynetMessage,
   HandledSkynetMessage,
@@ -25,7 +26,10 @@ const getInternalAccountMads = async (AWS: any, accountId: string) => {
       ':accId': { S: accountId },
     },
   });
-  return fetchResponse[0];
+
+  return !_isundefined(fetchResponse[0]) && !_isnull(fetchResponse[0])
+    ? fetchResponse[0]
+    : { accountId };
 };
 
 const getInternalUserMads = async (AWS: any, userId: string) => {
@@ -37,7 +41,9 @@ const getInternalUserMads = async (AWS: any, userId: string) => {
       ':uId': { S: userId },
     },
   });
-  return fetchResponse[0];
+  return !_isundefined(fetchResponse[0]) && !_isnull(fetchResponse[0])
+    ? fetchResponse[0]
+    : { userId };
 };
 
 const defaults = {
