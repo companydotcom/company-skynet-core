@@ -77,9 +77,17 @@ export const useSkynet = (
             AWS
           )
         ),
-        withVendorConfig(
-          createTailoredOptions(['service', 'debugMode'], skynetConfig, AWS)
-        ),
+        ...(skynetConfig.hasServiceConfig
+          ? [
+              withVendorConfig(
+                createTailoredOptions(
+                  ['service', 'debugMode'],
+                  skynetConfig,
+                  AWS
+                )
+              ),
+            ]
+          : []),
         withPrivacyScreen(
           createTailoredOptions(['debugMode'], skynetConfig, AWS)
         ),
