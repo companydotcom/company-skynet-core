@@ -25,7 +25,11 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
       ':accId': { S: accountId },
     },
   });
-  if (typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
     delete fetchResponse[0].globalMicroAppData;
   }
   return fetchResponse[0];
@@ -45,7 +49,11 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
       ':uId': { S: userId },
     },
   });
-  if (typeof fetchResponse[0].globalMicroAppData !== 'undefined') {
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
     delete fetchResponse[0].globalMicroAppData;
   }
   return fetchResponse[0];
@@ -71,11 +79,11 @@ const createWithContextPrep = (
           'Messages using "withContextPrep" must include a userId and accountId on the context.user object'
         );
       }
-      request.internal[`user-${userId}`] = getCurrentUserData(
+      request.internal[`user-${userId}`] = await getCurrentUserData(
         options.AWS,
         userId
       );
-      const account = getCurrentAccountData(options.AWS, accountId);
+      const account = await getCurrentAccountData(options.AWS, accountId);
       request.internal[`account-${accountId}`] = account;
       m.msgBody.context.user.account = account;
       console.log(
