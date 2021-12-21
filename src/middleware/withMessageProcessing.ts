@@ -198,7 +198,7 @@ const withMessageProcessing = (
             },
             {
               ...msgAttribs,
-              status: getCompleteStatus(workerResp),
+              status: getCompleteStatus(message),
               eventId: uuid(),
               emitter: service,
             }

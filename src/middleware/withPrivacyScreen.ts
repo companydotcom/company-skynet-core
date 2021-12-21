@@ -115,6 +115,7 @@ const createWithPrivacyScreen = (
         msgAttribs: m.attributes,
         rcptHandle: m.rcptHandle,
         workerResp: m.workerResp,
+        status: m.status,
       };
     });
     console.log('Popping request.internal & reformating event messages');
