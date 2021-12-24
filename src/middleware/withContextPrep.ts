@@ -73,16 +73,17 @@ const createWithContextPrep = (
     }
     request.event.map(async (m) => {
       const userId = m.msgBody.context.user.userId;
-      const accountId = m.msgBody.context.user.accountId;
-      if (!userId || !accountId) {
+      if (!userId) {
         throw new Error(
-          'Messages using "withContextPrep" must include a userId and accountId on the context.user object'
+          'Messages using "withContextPrep" must include a userId on the context.user object'
         );
       }
       request.internal[`user-${userId}`] = await getCurrentUserData(
         options.AWS,
         userId
       );
+
+      const accountId = request.internal[`user-${userId}`].accountId;
       const account = await getCurrentAccountData(options.AWS, accountId);
       request.internal[`account-${accountId}`] = account;
       m.msgBody.context.user.account = account;

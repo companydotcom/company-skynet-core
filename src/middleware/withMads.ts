@@ -17,6 +17,30 @@ import {
 } from '../library/util';
 import { batchPutIntoDynamoDb, fetchRecordsByQuery } from '../library/dynamo';
 
+/**
+ * Get the current user data from the database for the given accountId
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} userId is the userId for which the data needs to be fetched
+ */
+const getCurrentUserData = async (AWS: any, userId: string) => {
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
+    ExpressionAttributeValues: {
+      ':uId': { S: userId },
+    },
+  });
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
+    delete fetchResponse[0].globalMicroAppData;
+  }
+  return fetchResponse[0];
+};
+
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'account-mads',
@@ -73,11 +97,16 @@ const createWithMads = (
           ['msgBody', 'context', 'user', 'userId'],
           ''
         );
-        const accountId: string = _get(
+        let accountId: string = _get(
           m,
           ['msgBody', 'context', 'user', 'accountId'],
           ''
         );
+
+        if (!accountId) {
+          const userData = await getCurrentUserData(AWS, userId);
+          accountId = userData.accountId;
+        }
 
         const [internalAccountMads, internalUserMads] = await Promise.all([
           getInternalAccountMads(AWS, accountId),
