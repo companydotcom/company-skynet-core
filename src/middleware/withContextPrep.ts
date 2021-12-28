@@ -17,6 +17,9 @@ const defaults = {
  * @param {string} accountId is the accountId for which the data needs to be fetched
  */
 const getCurrentAccountData = async (AWS: any, accountId: string) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'Account',
     ExpressionAttributeNames: { '#pk': 'accountId' },
@@ -25,6 +28,10 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
       ':accId': { S: accountId },
     },
   });
+
+  if (fetchResponse.length === 0) {
+    return undefined;
+  }
 
   if (
     typeof fetchResponse[0] !== 'undefined' &&
@@ -41,6 +48,9 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
  * @param {string} userId is the userId for which the data needs to be fetched
  */
 const getCurrentUserData = async (AWS: any, userId: string) => {
+  if (userId === '' || typeof userId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'User',
     ExpressionAttributeNames: { '#pk': 'userId' },
@@ -49,6 +59,10 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
       ':uId': { S: userId },
     },
   });
+
+  if (fetchResponse.length === 0) {
+    return undefined;
+  }
 
   if (
     typeof fetchResponse[0] !== 'undefined' &&
@@ -78,15 +92,16 @@ const createWithContextPrep = (
           'Messages using "withContextPrep" must include a userId on the context.user object'
         );
       }
-      request.internal[`user-${userId}`] = await getCurrentUserData(
-        options.AWS,
-        userId
-      );
-
-      const accountId = request.internal[`user-${userId}`].accountId;
-      const account = await getCurrentAccountData(options.AWS, accountId);
-      request.internal[`account-${accountId}`] = account;
-      m.msgBody.context.user.account = account;
+      const userData = await getCurrentUserData(options.AWS, userId);
+      let accountId = undefined;
+      if (typeof userData !== undefined) {
+        request.internal[`user-${userId}`] = userData;
+        accountId = request.internal[`user-${userId}`].accountId;
+        const accountData = await getCurrentAccountData(options.AWS, accountId);
+        if (typeof accountData !== undefined) {
+          request.internal[`account-${accountId}`] = accountData;
+        }
+      }
       console.log(
         `Fetching latest User: ${userId} and Account: ${accountId} for this message`
       );

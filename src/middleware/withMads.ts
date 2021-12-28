@@ -41,6 +41,37 @@ const getCurrentUserData = async (AWS: any, userId: string) => {
   return fetchResponse[0];
 };
 
+/**
+ * Get the current account data from the database for the given accountId
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} accountId is the accountId for which the data needs to be fetched
+ */
+const getCurrentAccountData = async (AWS: any, accountId: string) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'Account',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
+    ExpressionAttributeValues: {
+      ':accId': { S: accountId },
+    },
+  });
+
+  if (fetchResponse.length === 0) {
+    return undefined;
+  }
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
+    delete fetchResponse[0].globalMicroAppData;
+  }
+  return fetchResponse[0];
+};
+
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'account-mads',
@@ -57,6 +88,9 @@ const getInternalAccountMads = async (AWS: any, accountId: string) => {
 };
 
 const getInternalUserMads = async (AWS: any, userId: string) => {
+  if (userId === '') {
+    return { userId };
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'user-mads',
     ExpressionAttributeNames: { '#pk': 'userId' },
@@ -92,26 +126,36 @@ const createWithMads = (
     const { service, AWS } = options;
     await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
-        const userId: string = _get(
+        let userId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'userId'],
-          ''
-        );
-        let accountId: string = _get(
-          m,
-          ['msgBody', 'context', 'user', 'accountId'],
-          ''
+          undefined
         );
 
-        if (!accountId) {
+        let accountId: any | undefined = undefined;
+        let internalUserMads: any | undefined = undefined;
+        let internalAccountMads: any | undefined = undefined;
+
+        if (typeof userId !== 'undefined') {
           const userData = await getCurrentUserData(AWS, userId);
-          accountId = userData.accountId;
+          if (typeof userData !== 'undefined') {
+            internalUserMads = await getInternalUserMads(AWS, userId);
+            accountId = userData.accountId;
+          } else {
+            userId = undefined;
+          }
         }
 
-        const [internalAccountMads, internalUserMads] = await Promise.all([
-          getInternalAccountMads(AWS, accountId),
-          getInternalUserMads(AWS, userId),
-        ]);
+        if (typeof accountId !== 'undefined') {
+          const accountData = await getCurrentAccountData(AWS, accountId);
+          if (typeof accountData !== 'undefined') {
+            accountId = undefined;
+            internalAccountMads = await getInternalAccountMads(
+              AWS,
+              accountData.accountId
+            );
+          }
+        }
 
         Object.assign(
           internalMadsCache,
@@ -119,9 +163,11 @@ const createWithMads = (
             ? {
                 [userId]: internalUserMads,
               }
-            : {
+            : typeof userId !== 'undefined'
+            ? {
                 [userId]: { userId },
               }
+            : {}
         );
         Object.assign(
           internalMadsCache,
@@ -129,9 +175,11 @@ const createWithMads = (
             ? {
                 [accountId]: internalAccountMads,
               }
-            : {
+            : typeof accountId !== 'undefined'
+            ? {
                 [accountId]: { accountId },
               }
+            : {}
         );
 
         // * Evaluate data of user from user-mads and
@@ -209,16 +257,42 @@ const createWithMads = (
     request: middy.Request
   ) => {
     const { msgBody, workerResp } = m;
-    const userId: string = _get(msgBody, ['context', 'user', 'userId'], '');
-    const accountId: string = _get(
+    const userId: any | undefined = _get(
+      msgBody,
+      ['context', 'user', 'userId'],
+      undefined
+    );
+
+    const accountId: any | undefined = _get(
       msgBody,
       ['context', 'user', 'accountId'],
-      ''
+      undefined
     );
-    const context = await getMiddyInternal(request, [
-      `user-${userId}`,
-      `account-${accountId}`,
-    ]);
+
+    let userData: any | undefined = undefined;
+    let accountData: any | undefined = undefined;
+
+    if (typeof userId !== 'undefined') {
+      userData = await getCurrentUserData(AWS, userId);
+    }
+
+    if (typeof accountId !== 'undefined') {
+      accountData = await getCurrentAccountData(AWS, accountId);
+    }
+
+    const context: any = {};
+
+    if (typeof userData !== 'undefined') {
+      context[`user-${userId}`] = await getMiddyInternal(request, [
+        `user-${userId}`,
+      ]);
+    }
+
+    if (typeof accountData !== 'undefined') {
+      context[`account-${accountId}`] = await getMiddyInternal(request, [
+        `account-${accountId}`,
+      ]);
+    }
 
     // * Set defaults if any internal or global MADS do not exist
     const internalAccountMads = _get(internalMadsCache, accountId, {});
@@ -252,6 +326,11 @@ const createWithMads = (
       workerResp.hasOwnProperty('microAppData') &&
       workerResp.microAppData.hasOwnProperty('user')
     ) {
+      if (typeof userId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined userId from request'
+        );
+      }
       const { user: userMads } = workerResp.microAppData;
 
       // * Validation
@@ -292,6 +371,12 @@ const createWithMads = (
       itemExists(workerResp, 'microAppData') &&
       itemExists(workerResp.microAppData, 'account')
     ) {
+      if (typeof accountId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined accountId from request'
+        );
+      }
+
       const { account: accountMads } = workerResp.microAppData;
 
       // * Validation
