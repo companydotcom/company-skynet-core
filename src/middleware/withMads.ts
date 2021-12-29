@@ -17,7 +17,68 @@ import {
 } from '../library/util';
 import { batchPutIntoDynamoDb, fetchRecordsByQuery } from '../library/dynamo';
 
+/**
+ * Get the current user data from the database for the given accountId
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} userId is the userId for which the data needs to be fetched
+ */
+const getCurrentUserData = async (AWS: any, userId: string) => {
+  if (userId === '' || typeof userId === 'undefined') {
+    return undefined;
+  }
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'User',
+    ExpressionAttributeNames: { '#pk': 'userId' },
+    KeyConditionExpression: '#pk = :uId',
+    ExpressionAttributeValues: {
+      ':uId': { S: userId },
+    },
+  });
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
+    delete fetchResponse[0].globalMicroAppData;
+  }
+  return fetchResponse[0];
+};
+
+/**
+ * Get the current account data from the database for the given accountId
+ * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
+ * @param {string} accountId is the accountId for which the data needs to be fetched
+ */
+const getCurrentAccountData = async (AWS: any, accountId: string) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
+  const fetchResponse = await fetchRecordsByQuery(AWS, {
+    TableName: 'Account',
+    ExpressionAttributeNames: { '#pk': 'accountId' },
+    KeyConditionExpression: '#pk = :accId',
+    ExpressionAttributeValues: {
+      ':accId': { S: accountId },
+    },
+  });
+
+  if (fetchResponse.length === 0) {
+    return undefined;
+  }
+
+  if (
+    typeof fetchResponse[0] !== 'undefined' &&
+    typeof fetchResponse[0].globalMicroAppData !== 'undefined'
+  ) {
+    delete fetchResponse[0].globalMicroAppData;
+  }
+  return fetchResponse[0];
+};
+
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'account-mads',
     ExpressionAttributeNames: { '#pk': 'accountId' },
@@ -33,6 +94,9 @@ const getInternalAccountMads = async (AWS: any, accountId: string) => {
 };
 
 const getInternalUserMads = async (AWS: any, userId: string) => {
+  if (userId === '' || typeof userId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'user-mads',
     ExpressionAttributeNames: { '#pk': 'userId' },
@@ -68,15 +132,16 @@ const createWithMads = (
     const { service, AWS } = options;
     await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
-        const userId: string = _get(
+        const userId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'userId'],
-          ''
+          undefined
         );
-        const accountId: string = _get(
+
+        const accountId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'accountId'],
-          ''
+          undefined
         );
 
         const [internalAccountMads, internalUserMads] = await Promise.all([
@@ -90,9 +155,11 @@ const createWithMads = (
             ? {
                 [userId]: internalUserMads,
               }
-            : {
+            : typeof userId !== 'undefined'
+            ? {
                 [userId]: { userId },
               }
+            : { ['undefined-userId']: {} }
         );
         Object.assign(
           internalMadsCache,
@@ -100,9 +167,11 @@ const createWithMads = (
             ? {
                 [accountId]: internalAccountMads,
               }
-            : {
+            : typeof accountId !== 'undefined'
+            ? {
                 [accountId]: { accountId },
               }
+            : { ['undefined-accountId']: {} }
         );
 
         // * Evaluate data of user from user-mads and
@@ -120,13 +189,20 @@ const createWithMads = (
           account: {} as any,
         };
 
+        let serviceUserMads: any = {};
         // * Evaluate and transform internal MADS
-        const serviceUserMads = transformMadsToReadFormat({
-          [service]: _get(internalUserMads, service),
-        });
-        const serviceAccountMads = transformMadsToReadFormat({
-          [service]: _get(internalAccountMads, service),
-        });
+        if (typeof userId !== 'undefined') {
+          serviceUserMads = transformMadsToReadFormat({
+            [service]: _get(internalUserMads, service),
+          });
+        }
+
+        let serviceAccountMads: any = {};
+        if (typeof accountId !== 'undefined') {
+          serviceAccountMads = transformMadsToReadFormat({
+            [service]: _get(internalAccountMads, service),
+          });
+        }
 
         internalMicroAppData.user = !_isundefined(serviceUserMads[service])
           ? serviceUserMads[service]
@@ -140,32 +216,36 @@ const createWithMads = (
 
         // * Remove the service owned data from sharedMicroAppData as it is
         // * already available in internalUserMads and internalAccountMads
-        sharedMicroAppData.account = transformMadsToReadFormat(
-          evaluateMadsReadAccess(
-            Object.keys(internalAccountMads)
-              .filter((key) => key !== service)
-              .reduce((obj, key) => {
-                return {
-                  ...obj,
-                  [key]: internalAccountMads[key],
-                };
-              }, {}),
-            service
-          )
-        );
-        sharedMicroAppData.user = transformMadsToReadFormat(
-          evaluateMadsReadAccess(
-            Object.keys(internalUserMads)
-              .filter((key) => key !== service)
-              .reduce((obj, key) => {
-                return {
-                  ...obj,
-                  [key]: internalUserMads[key],
-                };
-              }, {}),
-            service
-          )
-        );
+        if (typeof internalAccountMads !== 'undefined') {
+          sharedMicroAppData.account = transformMadsToReadFormat(
+            evaluateMadsReadAccess(
+              Object.keys(internalAccountMads)
+                .filter((key) => key !== service)
+                .reduce((obj, key) => {
+                  return {
+                    ...obj,
+                    [key]: internalAccountMads[key],
+                  };
+                }, {}),
+              service
+            )
+          );
+        }
+        if (typeof internalUserMads !== 'undefined') {
+          sharedMicroAppData.user = transformMadsToReadFormat(
+            evaluateMadsReadAccess(
+              Object.keys(internalUserMads)
+                .filter((key) => key !== service)
+                .reduce((obj, key) => {
+                  return {
+                    ...obj,
+                    [key]: internalUserMads[key],
+                  };
+                }, {}),
+              service
+            )
+          );
+        }
 
         addToEventContext(request, m, middlewareName, {
           internalMicroAppData,
@@ -180,16 +260,42 @@ const createWithMads = (
     request: middy.Request
   ) => {
     const { msgBody, workerResp } = m;
-    const userId: string = _get(msgBody, ['context', 'user', 'userId'], '');
-    const accountId: string = _get(
+    const userId: any | undefined = _get(
+      msgBody,
+      ['context', 'user', 'userId'],
+      undefined
+    );
+
+    const accountId: any | undefined = _get(
       msgBody,
       ['context', 'user', 'accountId'],
-      ''
+      undefined
     );
-    const context = await getMiddyInternal(request, [
-      `user-${userId}`,
-      `account-${accountId}`,
-    ]);
+
+    let userData: any | undefined = undefined;
+    let accountData: any | undefined = undefined;
+
+    if (typeof userId !== 'undefined') {
+      userData = await getCurrentUserData(AWS, userId);
+    }
+
+    if (typeof accountId !== 'undefined') {
+      accountData = await getCurrentAccountData(AWS, accountId);
+    }
+
+    const context: any = {};
+
+    if (typeof userData !== 'undefined') {
+      context[`user-${userId}`] = await getMiddyInternal(request, [
+        `user-${userId}`,
+      ]);
+    }
+
+    if (typeof accountData !== 'undefined') {
+      context[`account-${accountId}`] = await getMiddyInternal(request, [
+        `account-${accountId}`,
+      ]);
+    }
 
     // * Set defaults if any internal or global MADS do not exist
     const internalAccountMads = _get(internalMadsCache, accountId, {});
@@ -223,6 +329,11 @@ const createWithMads = (
       workerResp.hasOwnProperty('microAppData') &&
       workerResp.microAppData.hasOwnProperty('user')
     ) {
+      if (typeof userId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined userId from request'
+        );
+      }
       const { user: userMads } = workerResp.microAppData;
 
       // * Validation
@@ -263,6 +374,12 @@ const createWithMads = (
       itemExists(workerResp, 'microAppData') &&
       itemExists(workerResp.microAppData, 'account')
     ) {
+      if (typeof accountId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined accountId from request'
+        );
+      }
+
       const { account: accountMads } = workerResp.microAppData;
 
       // * Validation
