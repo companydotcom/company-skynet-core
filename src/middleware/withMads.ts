@@ -23,6 +23,9 @@ import { batchPutIntoDynamoDb, fetchRecordsByQuery } from '../library/dynamo';
  * @param {string} userId is the userId for which the data needs to be fetched
  */
 const getCurrentUserData = async (AWS: any, userId: string) => {
+  if (userId === '' || typeof userId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'User',
     ExpressionAttributeNames: { '#pk': 'userId' },
@@ -73,6 +76,9 @@ const getCurrentAccountData = async (AWS: any, accountId: string) => {
 };
 
 const getInternalAccountMads = async (AWS: any, accountId: string) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'account-mads',
     ExpressionAttributeNames: { '#pk': 'accountId' },
@@ -88,8 +94,8 @@ const getInternalAccountMads = async (AWS: any, accountId: string) => {
 };
 
 const getInternalUserMads = async (AWS: any, userId: string) => {
-  if (userId === '') {
-    return { userId };
+  if (userId === '' || typeof userId === 'undefined') {
+    return undefined;
   }
   const fetchResponse = await fetchRecordsByQuery(AWS, {
     TableName: 'user-mads',
@@ -126,36 +132,22 @@ const createWithMads = (
     const { service, AWS } = options;
     await Promise.all(
       request.event.map(async (m: SkynetMessage) => {
-        let userId: any | undefined = _get(
+        const userId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'userId'],
           undefined
         );
 
-        let accountId: any | undefined = undefined;
-        let internalUserMads: any | undefined = undefined;
-        let internalAccountMads: any | undefined = undefined;
+        const accountId: any | undefined = _get(
+          m,
+          ['msgBody', 'context', 'user', 'accountId'],
+          undefined
+        );
 
-        if (typeof userId !== 'undefined') {
-          const userData = await getCurrentUserData(AWS, userId);
-          if (typeof userData !== 'undefined') {
-            internalUserMads = await getInternalUserMads(AWS, userId);
-            accountId = userData.accountId;
-          } else {
-            userId = undefined;
-          }
-        }
-
-        if (typeof accountId !== 'undefined') {
-          const accountData = await getCurrentAccountData(AWS, accountId);
-          if (typeof accountData !== 'undefined') {
-            accountId = undefined;
-            internalAccountMads = await getInternalAccountMads(
-              AWS,
-              accountData.accountId
-            );
-          }
-        }
+        const [internalAccountMads, internalUserMads] = await Promise.all([
+          getInternalAccountMads(AWS, accountId),
+          getInternalUserMads(AWS, userId),
+        ]);
 
         Object.assign(
           internalMadsCache,
@@ -167,7 +159,7 @@ const createWithMads = (
             ? {
                 [userId]: { userId },
               }
-            : {}
+            : { ['undefined-userId']: {} }
         );
         Object.assign(
           internalMadsCache,
@@ -179,7 +171,7 @@ const createWithMads = (
             ? {
                 [accountId]: { accountId },
               }
-            : {}
+            : { ['undefined-accountId']: {} }
         );
 
         // * Evaluate data of user from user-mads and
@@ -197,13 +189,20 @@ const createWithMads = (
           account: {} as any,
         };
 
+        let serviceUserMads: any = {};
         // * Evaluate and transform internal MADS
-        const serviceUserMads = transformMadsToReadFormat({
-          [service]: _get(internalUserMads, service),
-        });
-        const serviceAccountMads = transformMadsToReadFormat({
-          [service]: _get(internalAccountMads, service),
-        });
+        if (typeof userId !== 'undefined') {
+          serviceUserMads = transformMadsToReadFormat({
+            [service]: _get(internalUserMads, service),
+          });
+        }
+
+        let serviceAccountMads: any = {};
+        if (typeof accountId !== 'undefined') {
+          serviceAccountMads = transformMadsToReadFormat({
+            [service]: _get(internalAccountMads, service),
+          });
+        }
 
         internalMicroAppData.user = !_isundefined(serviceUserMads[service])
           ? serviceUserMads[service]
@@ -217,32 +216,36 @@ const createWithMads = (
 
         // * Remove the service owned data from sharedMicroAppData as it is
         // * already available in internalUserMads and internalAccountMads
-        sharedMicroAppData.account = transformMadsToReadFormat(
-          evaluateMadsReadAccess(
-            Object.keys(internalAccountMads)
-              .filter((key) => key !== service)
-              .reduce((obj, key) => {
-                return {
-                  ...obj,
-                  [key]: internalAccountMads[key],
-                };
-              }, {}),
-            service
-          )
-        );
-        sharedMicroAppData.user = transformMadsToReadFormat(
-          evaluateMadsReadAccess(
-            Object.keys(internalUserMads)
-              .filter((key) => key !== service)
-              .reduce((obj, key) => {
-                return {
-                  ...obj,
-                  [key]: internalUserMads[key],
-                };
-              }, {}),
-            service
-          )
-        );
+        if (typeof internalAccountMads !== 'undefined') {
+          sharedMicroAppData.account = transformMadsToReadFormat(
+            evaluateMadsReadAccess(
+              Object.keys(internalAccountMads)
+                .filter((key) => key !== service)
+                .reduce((obj, key) => {
+                  return {
+                    ...obj,
+                    [key]: internalAccountMads[key],
+                  };
+                }, {}),
+              service
+            )
+          );
+        }
+        if (typeof internalUserMads !== 'undefined') {
+          sharedMicroAppData.user = transformMadsToReadFormat(
+            evaluateMadsReadAccess(
+              Object.keys(internalUserMads)
+                .filter((key) => key !== service)
+                .reduce((obj, key) => {
+                  return {
+                    ...obj,
+                    [key]: internalUserMads[key],
+                  };
+                }, {}),
+              service
+            )
+          );
+        }
 
         addToEventContext(request, m, middlewareName, {
           internalMicroAppData,

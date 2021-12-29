@@ -94,11 +94,11 @@ const createWithContextPrep = (
       }
       const userData = await getCurrentUserData(options.AWS, userId);
       let accountId = undefined;
-      if (typeof userData !== undefined) {
+      if (typeof userData !== 'undefined') {
         request.internal[`user-${userId}`] = userData;
         accountId = request.internal[`user-${userId}`].accountId;
         const accountData = await getCurrentAccountData(options.AWS, accountId);
-        if (typeof accountData !== undefined) {
+        if (typeof accountData !== 'undefined') {
           request.internal[`account-${accountId}`] = accountData;
         }
       }
