@@ -2,6 +2,7 @@ import middy from '@middy/core';
 import { SQSEvent, ScheduledEvent, SNSEvent } from 'aws-lambda';
 import { v4 as uuid } from 'uuid';
 import { getMiddyInternal } from '../library/util';
+import redis from 'redis';
 
 import es from '../library/eventStream';
 
@@ -134,6 +135,74 @@ function isSqsEvent(obj: any): obj is SQSEvent {
   return obj.Records !== undefined;
 }
 
+interface getEnvParamsInt {
+  region: string;
+  AWS: any;
+  keys: Array<string>;
+}
+
+export const getSSMParams = async ({
+  region,
+  AWS,
+  keys,
+}: getEnvParamsInt): Promise<any> => {
+  const ssm = new AWS.SSM({ apiVersion: '2014-11-06', region });
+
+  interface optionsInt {
+    Names: Array<string>;
+    WithDecryption: boolean;
+  }
+  const options: optionsInt = {
+    Names: [],
+    WithDecryption: true,
+  };
+
+  keys.forEach((key: string) => {
+    options.Names.push(key);
+  });
+
+  const params = await ssm.getParameters(options).promise();
+  if (
+    typeof params.InvalidParameters != 'undefined' &&
+    params.InvalidParameters.length > 0
+  ) {
+    return {};
+  }
+  return params.Parameters.reduce((result: any, param: any) => {
+    return {
+      ...result,
+      [param.Name]:
+        typeof param.Value !== 'undefined' ? JSON.parse(param.Value) : '',
+    };
+  }, {});
+};
+
+const storeToRedis = async (options: SettledOptions, value: JSON, key = '') => {
+  try {
+    const { skynetRespPayloadRedisConfig } = await getSSMParams({
+      region: options.region,
+      AWS: options.AWS,
+      keys: ['skynetRespPayloadRedisConfig'],
+    });
+    let cacheKey = key;
+    if (key === '') {
+      cacheKey = `skynet-resp-${uuid()}`;
+    }
+    const client = redis.createClient({
+      url: `redis://${skynetRespPayloadRedisConfig.elasticacheUrl}:${skynetRespPayloadRedisConfig.elasticachePort}`,
+    });
+    await client.connect();
+    await client.set(cacheKey, JSON.stringify(value), { EX: 1800000 });
+    client.quit();
+    return cacheKey;
+  } catch (ex: any) {
+    console.log(
+      `Skynet core - error writing large payload to redis - ${ex.toString()}`
+    );
+    throw ex;
+  }
+};
+
 const withMessageProcessing = (
   opt: Options
 ): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
@@ -187,6 +256,15 @@ const withMessageProcessing = (
             sendToDlq(message, options, workerResp.error);
           }
 
+          let respInRedis = false;
+          let respPayloadCacheId = '';
+          // Check if the length of the response is more than 256 KB. If it is, push the response
+          // to Redis and send the cacheId in the response.
+          if (Buffer.byteLength(workerResp.res, 'utf-8') > 250000) {
+            respInRedis = false;
+            // Connect to redis, create a uuid, push resp to redis, return the uuid - skynet-resp-<uuid>
+            respPayloadCacheId = await storeToRedis(options, workerResp.res);
+          }
           // Publish the response SNS event
           await es.publish(
             AWS,
@@ -194,7 +272,8 @@ const withMessageProcessing = (
             {
               ...msgBody,
               inputPayload: msgBody.payload,
-              payload: workerResp.res,
+              payload:
+                respInRedis === false ? workerResp.res : { respPayloadCacheId },
             },
             {
               ...msgAttribs,

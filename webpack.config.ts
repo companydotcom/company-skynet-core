@@ -1,4 +1,5 @@
 const path = require("path");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 
 module.exports = {
   entry: "./src/index.ts",
@@ -22,4 +23,7 @@ module.exports = {
     libraryTarget: "umd",
     globalObject: "this",
   },
+  plugins: [
+    new NodePolyfillPlugin()
+  ],
 };
