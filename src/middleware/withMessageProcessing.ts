@@ -2,7 +2,7 @@ import middy from '@middy/core';
 import { SQSEvent, ScheduledEvent, SNSEvent } from 'aws-lambda';
 import { v4 as uuid } from 'uuid';
 import { getMiddyInternal } from '../library/util';
-import redis from 'redis';
+import { createClient as redisCreateClient } from 'redis';
 
 import es from '../library/eventStream';
 
@@ -188,9 +188,10 @@ const storeToRedis = async (options: SettledOptions, value: JSON, key = '') => {
     if (key === '') {
       cacheKey = `skynet-resp-${uuid()}`;
     }
-    const client = redis.createClient({
+    const connParams = {
       url: `redis://${skynetRespPayloadRedisConfig.elasticacheUrl}:${skynetRespPayloadRedisConfig.elasticachePort}`,
-    });
+    };
+    const client = redisCreateClient(connParams);
     await client.connect();
     await client.set(cacheKey, JSON.stringify(value), { EX: 1800000 });
     client.quit();
@@ -260,10 +261,13 @@ const withMessageProcessing = (
           let respPayloadCacheId = '';
           // Check if the length of the response is more than 256 KB. If it is, push the response
           // to Redis and send the cacheId in the response.
-          if (Buffer.byteLength(workerResp.res, 'utf-8') > 250000) {
-            respInRedis = false;
+          if (
+            typeof workerResp.res !== 'undefined' &&
+            Buffer.byteLength(JSON.stringify(workerResp.res), 'utf-8') > 25
+          ) {
             // Connect to redis, create a uuid, push resp to redis, return the uuid - skynet-resp-<uuid>
             respPayloadCacheId = await storeToRedis(options, workerResp.res);
+            respInRedis = true;
           }
           // Publish the response SNS event
           await es.publish(

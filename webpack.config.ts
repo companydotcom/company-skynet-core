@@ -17,6 +17,7 @@ module.exports = {
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
   },
+  target: 'node',
   output: {
     filename: "index.js",
     path: path.resolve(__dirname, "dist"),
