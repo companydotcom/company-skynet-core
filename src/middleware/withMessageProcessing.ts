@@ -261,7 +261,7 @@ const withMessageProcessing = (
           // to Redis and send the cacheId in the response.
           if (
             typeof workerResp.res !== 'undefined' &&
-            Buffer.byteLength(JSON.stringify(workerResp.res), 'utf-8') > 200000
+            Buffer.byteLength(JSON.stringify(workerResp.res), 'utf-8') > 128000
           ) {
             // Connect to redis, create a uuid, push resp to redis, return the uuid - skynet-resp-<uuid>
             respPayloadCacheId = await storeToRedis(options, workerResp.res);
