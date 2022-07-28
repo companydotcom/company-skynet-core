@@ -1,6 +1,6 @@
 {
   "name": "@companydotcom/company-skynet-core",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "Company.com Skynet core library",
   "main": "dist/index.js",
   "scripts": {
