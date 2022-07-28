@@ -210,22 +210,20 @@ const withMessageProcessing = (
   const middlewareName = 'withMessageProcessing';
   const options = { ...defaults, ...opt } as SettledOptions;
 
-  const sqsBefore: middy.MiddlewareFn<
-    RawEvent,
-    [HandledSkynetMessage]
-  > = async (request): Promise<void> => {
-    if (options.debugMode) {
-      console.log('before', middlewareName);
-      console.log('TRIGGER EVENT:', request.event);
-    }
-    if (isScheduledEvent(request.event) && options.isBulk) {
-      await handleBulk(request, options);
-    } else if (isSqsEvent(request.event)) {
-      await handleSingle(request);
-    } else {
-      throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
-    }
-  };
+  const sqsBefore: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> =
+    async (request): Promise<void> => {
+      if (options.debugMode) {
+        console.log('before', middlewareName);
+        console.log('TRIGGER EVENT:', request.event);
+      }
+      if (isScheduledEvent(request.event) && options.isBulk) {
+        await handleBulk(request, options);
+      } else if (isSqsEvent(request.event)) {
+        await handleSingle(request);
+      } else {
+        throw 'Bulk operations must be Scheduled Event Lambda Invocations, Single Operations must be SNS Event Lambda Invocations';
+      }
+    };
 
   const sqsAfter: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
     request
@@ -263,7 +261,7 @@ const withMessageProcessing = (
           // to Redis and send the cacheId in the response.
           if (
             typeof workerResp.res !== 'undefined' &&
-            Buffer.byteLength(JSON.stringify(workerResp.res), 'utf-8') > 250000
+            Buffer.byteLength(JSON.stringify(workerResp.res), 'utf-8') > 200000
           ) {
             // Connect to redis, create a uuid, push resp to redis, return the uuid - skynet-resp-<uuid>
             respPayloadCacheId = await storeToRedis(options, workerResp.res);
