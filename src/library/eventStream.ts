@@ -116,7 +116,7 @@ export default {
         ...options,
       };
       res = await sns.publish(params).promise();
-      console.log('SNS Publish - Success: '); // ORIGINAL CODE console.log('SNS Publish - Success: ', JSON.stringify(params)); - REMOVED TO PREVENT CREDIT CARD INFORMATION RECEIVED IN INPUT BEING LOGGED
+      console.log('SNS Publish - Success: ', JSON.stringify(params));
       return res;
     } catch (err) {
       console.log('SNS Publish - Failure: ', (err as Error).toString());
