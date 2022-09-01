@@ -214,7 +214,6 @@ const withMessageProcessing = (
     async (request): Promise<void> => {
       if (options.debugMode) {
         console.log('before', middlewareName);
-        console.log('TRIGGER EVENT:', request.event);
       }
       if (isScheduledEvent(request.event) && options.isBulk) {
         await handleBulk(request, options);
