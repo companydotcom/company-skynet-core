@@ -3,12 +3,12 @@ const NodePolyfillPlugin = require("node-polyfill-webpack-plugin")
 
 module.exports = {
   entry: "./src/index.ts",
-  devtool: "inline-source-map",
-  mode: "production",
+  // devtool: "inline-source-map",
+  mode: "development",
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.ts?$/,
         use: "ts-loader",
         exclude: [/node_modules/, /test/],
       },
@@ -16,6 +16,11 @@ module.exports = {
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
+    fallback: {
+      // Ensure these modules are treated as CommonJS modules
+      "path": require.resolve("@middy/core/")
+      // Add any other modules that need to be treated as CommonJS here
+    },
   },
   target: 'node',
   output: {

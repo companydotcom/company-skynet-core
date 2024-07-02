@@ -1,146 +1,219 @@
-import { sleep, itemExists } from './util';
+// import { unmarshall } from "@aws-sdk/util-dynamodb";
+// import AWSXRay from 'aws-xray-sdk';
+// import { DynamoDBClient } from '@aws-sdk/client-dynamodb;
 
-// Safety limit for bulk insertions into DynamoDb
-const batchWriteRecordsLimit = 25;
+// const ddb = AWSXRay.captureAWSv3Client(new DynamoDBClient({ region: "region" }));
 
-// Fallback safety limit for bulk queries from DynamoDb
-const dynamoDbQuerySafeBatchLimit = 1000;
+export interface QueryObject {
+  TableName: string;
+  Limit?: number;
+  IndexName?: string;
+  KeyConditionExpression: string;
+  FilterExpression?: string;
+  ExpressionAttributeValues: { [key: string]: any };
+  ExpressionAttributeNames?: {[key: string]: string};
+}
 
-/**
- * Gets records for given query object.
- * If there is no limit set on the number of records, it uses the built-in safety limit.
- * All records returned are simple Javascript Objects with Key-Value pairs (doing away with
- * DynamoDb style of defining values for properties along with data type - unmarshalling)
- * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {Object} queryObject
- * @returns {[{String: *}]}
- */
+interface FetchRecordsByQueryResultWithItems {
+  items: any[];
+  exclusiveStartKey?: any;
+}
+
+type FetchRecordsByQueryResult = FetchRecordsByQueryResultWithItems | any[];
+
+
+// const sleep = async (ms: number): Promise<void> => {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// };
+
 export const fetchRecordsByQuery = async (
   AWS: any,
-  queryObject: any,
-  paginate = false
-) => {
-  const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
+  skynetConfig: any,
+  queryObject: QueryObject,
+  paginate: boolean = false
+): Promise<FetchRecordsByQueryResult | any> => {
+  // console.log('skynetConfig - ', JSON.stringify(skynetConfig, null, 4));
+  // console.log('process.env.region - ', skynetConfig.region);
+  const dynamodb = new AWS.dynamoDbClient.DynamoDBClient({ region: skynetConfig.region });
+  // console.log("Query =>", JSON.stringify(queryObject, null, 4));
   // Add safe fetch limit if one is not set
-  if (!itemExists(queryObject, 'Limit')) {
-    // eslint-disable-next-line no-param-reassign
-    queryObject.Limit = dynamoDbQuerySafeBatchLimit;
-  }
-  const qResult = await dynamodb.query(queryObject).promise();
-  if (paginate === true) {
-    if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
-      return { items: [], ExclusiveStartKey: undefined };
-    }
-    return {
-      items: qResult.Items.map((it: any) =>
-        AWS.DynamoDB.Converter.unmarshall(it)
-      ),
-      ExclusiveStartKey: itemExists(qResult, 'LastEvaluatedKey')
-        ? qResult.LastEvaluatedKey
-        : undefined,
-    };
-  }
-  if (!itemExists(qResult, 'Items') || qResult.Items.length < 1) {
-    return [];
-  }
-  // Convert DynamoDb stlye objects to simple Javascript objects
-  return qResult.Items.map((item: any) =>
-    AWS.DynamoDB.Converter.unmarshall(item)
-  );
-};
-
-/**
- * Increment the value in the given column by the given value
- * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {String} tName is the table name
- * @param {Object} srchParams are the search params for the record
- * @param {String} colName column name to increment
- * @param {Number} incVal value to increment by
- * @returns {Boolean}
- */
-// eslint-disable-next-line arrow-body-style
-export const incrementColumn = async (
-  AWS: any,
-  tName: string,
-  srchParams: any,
-  colName: string,
-  incVal = 1
-) => {
-  const docClient = new AWS.DynamoDB.DocumentClient();
-  const obj = {
-    TableName: tName,
-    Key: srchParams,
-    UpdateExpression: `ADD ${colName} :val`,
-    ExpressionAttributeValues: {
-      ':val': incVal,
-    },
-  };
-  return docClient.update(obj).promise();
-};
-
-/**
- * Inserts/ Upserts data into DynamoDb with given records to the given table
- * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {Array} records
- * @param {String} tName
- * @returns {Boolean}
- */
-export const batchPutIntoDynamoDb = async (
-  AWS: any,
-  recs: any,
-  tName: string,
-  backoff = 1000
-): Promise<void> => {
-  const dynamodb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
-  // Convert all records to DynamoDb object structure and append the top level
-  // object structure for each record insertion
-  const preparedRecords = recs.map((record: any) => ({
-    PutRequest: { Item: AWS.DynamoDB.Converter.marshall(record) },
-  }));
-
-  const bulkRequests = [];
-
-  // Split the records into batches of the safe batch request length, insert
-  // the top level object for insertion and send the split batches for batch
-  // write into database all at the same time using Promise.all
-  while (preparedRecords.length > 0) {
-    bulkRequests.push(
-      dynamodb
-        .batchWriteItem({
-          RequestItems: {
-            [tName]: preparedRecords.splice(0, batchWriteRecordsLimit),
-          },
-        })
-        .promise()
-    );
+  if (!queryObject.hasOwnProperty("Limit")) {
+    queryObject.Limit = 1000;
   }
 
-  console.log(
-    `DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${
-      bulkRequests.length
-    } with each request having ${batchWriteRecordsLimit} records except the last one having ${
-      recs.length - batchWriteRecordsLimit * (bulkRequests.length - 1)
-    } records`
-  );
-
-  const result = await Promise.all(bulkRequests);
-  const unprocessedRecords = result
-    .map((resultDatum) => {
-      if (
-        itemExists(resultDatum, 'UnprocessedItems') &&
-        itemExists(resultDatum.UnprocessedItems, tName) &&
-        resultDatum.UnprocessedItems[tName].length > 0
-      ) {
-        // eslint-disable-next-line max-len
-        return resultDatum.UnprocessedItems[tName].map((unprocessedRec: any) =>
-          AWS.DynamoDB.Converter.unmarshall(unprocessedRec.PutRequest.Item)
-        );
+  try {
+    const command = new AWS.dynamoDbClient.QueryCommand(queryObject);
+    const queryResult = await dynamodb.send(command);
+    // console.log("RESULT =>", JSON.stringify(queryResult, null, 4));
+    if (paginate === true) {
+      if (!queryResult.Items || queryResult.Items.length < 1) {
+        return { items: [], exclusiveStartKey: undefined };
       }
+
+      return {
+        items: queryResult.Items.map((item: any) => AWS.dynamoDbUtils.unmarshall(item)),
+        exclusiveStartKey: queryResult.hasOwnProperty("LastEvaluatedKey")
+          ? queryResult.LastEvaluatedKey
+          : undefined,
+      };
+    }
+
+    if (!queryResult.Items || queryResult.Items.length < 1) {
       return [];
-    })
-    .reduce((output, currentArray) => output.concat(currentArray));
-  if (unprocessedRecords.length > 0) {
-    await sleep(backoff);
-    return batchPutIntoDynamoDb(AWS, unprocessedRecords, tName, backoff + 1000);
+    }
+    // Convert DynamoDb style objects to simple JavaScript objects
+    return queryResult.Items.map((item: any) => AWS.dynamoDbUtils.unmarshall(item));
+  } catch (err) {
+    console.error(err);
+    throw err;
   }
 };
+
+
+// // export async function batchFetchFromDynamoDb(
+// //   records: any[],
+// //   tableName: string
+// // ): Promise<any> {
+// //   const preparedRecords = records.map((record) => {
+// //     return marshall(record);
+// //   });
+
+// //   const params = {
+// //     RequestItems: {
+// //       [tableName]: {
+// //         Keys: preparedRecords,
+// //       },
+// //     },
+// //   };
+
+// //   try {
+// //     const command = new BatchGetItemCommand(params);
+// //     const result = await dynamodb.send(command);
+// //     console.log("result - ", JSON.stringify(result, null, 4));
+// //     return result;
+// //   } catch (err) {
+// //     console.log("Error in fetching from table - ", err.toString());
+// //     throw err;
+// //   }
+// // }
+
+// export async function batchPutIntoDynamoDb(
+//   records: any[],
+//   tableName: string,
+//   backoffTime = 1000
+// ): Promise< any > {
+//   const preparedRecords = records.map((record) => {
+//     return {
+//       PutRequest: { Item: marshall(record, { removeUndefinedValues: true }) },
+//     };
+//   });
+  
+//   const bulkRequests = [];
+
+//   while (preparedRecords.length > 0) {
+//     bulkRequests.push(
+//       new BatchWriteItemCommand({
+//         RequestItems: {
+//           [tableName]: preparedRecords.splice(0, 25),
+//         },
+//       })
+//     );
+//   }
+
+//   console.log(
+//     `DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${
+//       bulkRequests.length
+//     } with each request having 25 records except the last one having ${records.length -
+//       25 * (bulkRequests.length - 1)} records`
+//   );
+
+//   try {
+//     const results: any = await Promise.all(
+//       bulkRequests.map((command) => dynamodb.send(command))
+//     );
+//       console.log('results - ', JSON.stringify(results, null, 4));
+//     const unprocessedRecords: any = results
+//       .map((result) => {
+//         if (
+//           result.hasOwnProperty("UnprocessedItems") &&
+//           result.UnprocessedItems.hasOwnProperty(tableName) &&
+//           result.UnprocessedItems[tableName].length > 0
+//         ) {
+//           return result.UnprocessedItems[tableName].map((unprocessedRec) =>
+//             unmarshall(unprocessedRec.PutRequest.Item)
+//           );
+//         }
+//         return [];
+//       })
+//       .reduce((output, currentArray) => output.concat(currentArray));
+
+//     if (unprocessedRecords.length > 0) {
+//       await sleep(backoffTime);
+//       return batchPutIntoDynamoDb(
+//         unprocessedRecords,
+//         tableName,
+//         backoffTime + 1000
+//       );
+//     }
+
+//     return {
+//       unprocessedRecords: [],
+//       success: true,
+//     };
+//   } catch (err) {
+//     console.log("Error in inserting to table - ", err.toString());
+//     throw err;
+//   }
+// }
+
+
+
+// export const deleteItemByKeys = async (tableName: string, partitionKeyName: string, partitionKeyValue: string, sortKeyName?: string, sortKeyValue?: string) => {
+//   const key: AWS.DynamoDB.Key = {
+//     [partitionKeyName]: { S: partitionKeyValue },
+//   };
+
+//   if (sortKeyName && sortKeyValue) {
+//     key[sortKeyName] = { S: sortKeyValue };
+//   }
+
+//   const params: any = {
+//     TableName: tableName,
+//     Key: key,
+//   };
+
+//   try {
+//     const command = await new DeleteItemCommand(params);
+//     const response = await dynamodb.send(command);
+//     console.log('response from delete item - ', JSON.stringify(response, null, 4));
+//     console.log(`Item with partition key ${partitionKeyName}=${partitionKeyValue} and sort key ${sortKeyName}=${sortKeyValue} deleted from table ${tableName}.`);
+//   } catch (err) {
+//     console.error('Error deleting item:', err);
+//     throw err;
+//   }
+// };
+
+
+// export const putItemIntoDynamoDB = async(params: PutItemInput) => {
+//   try {
+//     // Put the item into DynamoDB
+//     const query = new PutItemCommand(params);
+//     const response = await dynamodb.send(query);
+//     console.log('PutItem response:', response);
+//   } catch (error) {
+//     console.error('Error putting item:', error);
+//     throw error;
+//   }
+// }
+
+
+// export const fetchCountQuery = async (queryObject: QueryObject) => {
+//   try {
+//     const command = new QueryCommand(queryObject);
+//     const queryResult = await dynamodb.send(command);
+//     return queryResult.Count;
+//   } catch (err) {
+//     console.error("err try=>", err);
+//     throw err;
+//   }
+// };

@@ -3,7 +3,6 @@ import { AWS as awsImports } from '../src/library/awsImports';
 import withAwsImports from '../src/middleware/withAwsImports';
 import withInputValidation from '../src/middleware/withInputValidation';
 import withTokenValidationAndContextPrep from '../src/middleware/withTokenValidationAndContextPrep';
-import withVendorConfig from '../src/middleware/withVendorConfig';
 import { getMiddyInternal } from '../src/library/util';
 // import { AWS } from '../src/library/awsImports';
 import { Options } from '../src/library/sharedTypes';
@@ -12,11 +11,11 @@ import fs from 'fs/promises';
 import * as path from 'path';
 // import * as ts from 'typescript';
 
-const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep, withVendorConfig] as any[];
+const middlewareToTest = [withInputValidation] as any[];
 
 const coreSettings = {
   region: 'us-east-1',
-  service: 'user-acg',
+  service: 'dynamodb',
   account: '765342366425',
   useThrottling: false,
   maxMessagesPerInstance: 20,
@@ -123,16 +122,16 @@ const test = async (event: any) => {
   const workerFileData = await fs.readFile(workerFilePath, 'utf8');
   middifiedHandler.use(withAwsImports(awsImports, workerFileData));
   middifiedHandler.use(middlewareToTest[0](coreSettings));
-  middifiedHandler.use(middlewareToTest[1](coreSettings));
-  middifiedHandler.use(middlewareToTest[2](coreSettings));
+  middifiedHandler.use(withTokenValidationAndContextPrep(coreSettings));
   middifiedHandler.use({
     before: async (request) => {
       console.log('RUNNING AFTER SUCCESSFUL CONTEXT PREP');
-        const vendorConfig = await getMiddyInternal(request, [
-            'vendorConfig',
+        const context = await getMiddyInternal(request, [
+            `user-${userId}`,
+            `account-${accountId}`,
           ]);
-          console.log('VendorConfig should be printed here');
-          console.log('VENDORCONFIG - ', JSON.stringify(vendorConfig, null, 4));
+          console.log('Context should have user and account details');
+          console.log('CONTEXT', context);
     },
   });
 

@@ -1,45 +1,50 @@
 import middy from '@middy/core';
-import { neverThrowError, addToEventContext } from './library/util';
-import withMessageProcessing from './middleware/withMessageProcessing';
-import withServiceData from './middleware/withServiceData';
-import withThrottling from './middleware/withThrottling';
+import {  addToEventContext, neverThrowError } from './library/util';
+// import { AWS } from './library/awsImports';
+import withAwsImports from './middleware/withAwsImports';
+import withInputValidation from './middleware/withInputValidation';
+import withTokenValidationAndContextPrep from './middleware/withTokenValidationAndContextPrep';
 import withVendorConfig from './middleware/withVendorConfig';
-import withContextPrep from './middleware/withContextPrep';
-import withCrmData from './middleware/withCrmData';
+import withServiceData from './middleware/withServiceData';
 import withMads from './middleware/withMads';
-import withPrivacyScreen from './middleware/withPrivacyScreen';
+// import withThrottling from './middleware/withThrottling';
+// import withCrmData from './middleware/withCrmData';
+// import withPrivacyScreen from './middleware/withPrivacyScreen';
+// import { fetchRecordsByQuery } from './library/dynamo';
 import {
   CoreSkynetConfig,
   SkynetMessage,
   AllowableConfigKeys,
   Options,
 } from './library/sharedTypes';
-
-import { handler as gpH } from './handlers/getPostHttp';
-import { handler as sDb } from './handlers/setupDatabase';
+// import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
 const createTailoredOptions = (
   keys: Array<AllowableConfigKeys>,
   skynetConfig: CoreSkynetConfig,
-  AWS?: any
 ): Options => {
   return keys.reduce(
     (opt, key) => ({
       ...opt,
       [key]: skynetConfig[key],
     }),
-    AWS ? { AWS } : {}
+    {} as Options,
   );
 };
 
-export const useSkynet = (
+
+export const useSkynet = async(
   AWS: any,
-  skynetConfig: CoreSkynetConfig,
+  skynetConfig: any,
   worker: (params: any) => any,
-  additionalMiddleware: [(opt: Options) => middy.MiddlewareObj]
+  workerFile: string,
+  // additionalMiddleware: [(opt: Options) => middy.MiddlewareObj]
 ) => {
-  console.log('Preparing Skynet Handler');
-  const handler = middy(async (event) => {
+  console.log('skynetConfig', JSON.stringify(skynetConfig, null, 4));
+
+  
+  // console.log('Preparing Skynet Handler');
+  const handler = middy(async (event: any) => {
     console.log('Delegating processed messages to worker:');
     return Promise.all(
       // opportunity to adjust call signature of the worker to best suit this approach
@@ -60,52 +65,60 @@ export const useSkynet = (
 
   let middleware: Array<any>;
   switch (skynetConfig.eventType) {
-    case 'webhook':
-      middleware = [
-        withMessageProcessing(
-          createTailoredOptions(
-            [
-              'isBulk',
-              'eventType',
-              'service',
-              'maxMessagesPerInstance',
-              'region',
-              'account',
-              'debugMode',
-            ],
-            skynetConfig,
-            AWS
-          )
-        ),
-        ...(skynetConfig.hasServiceConfig
-          ? [
-              withVendorConfig(
-                createTailoredOptions(
-                  ['service', 'debugMode'],
-                  skynetConfig,
-                  AWS
-                )
-              ),
-            ]
-          : []),
-        withPrivacyScreen(
-          createTailoredOptions(['debugMode'], skynetConfig, AWS)
-        ),
-        ...additionalMiddleware.map((mid) =>
-          mid(
-            createTailoredOptions(
-              ['service', 'eventType', 'isBulk', 'debugMode'],
-              skynetConfig,
-              false
-            )
-          )
-        ),
-      ];
-      break;
+    // case 'webhook':
+    //   middleware = [
+    //     withMessageProcessing(
+    //       createTailoredOptions(
+    //         [
+    //           'isBulk',
+    //           'eventType',
+    //           'service',
+    //           'maxMessagesPerInstance',
+    //           'region',
+    //           'account',
+    //           'debugMode',
+    //         ],
+    //         skynetConfig,
+    //         AWS
+    //       )
+    //     ),
+    //     ...(skynetConfig.hasServiceConfig
+    //       ? [
+    //           withVendorConfig(
+    //             createTailoredOptions(
+    //               ['service', 'debugMode'],
+    //               skynetConfig,
+    //               AWS
+    //             )
+    //           ),
+    //         ]
+    //       : []),
+    //     withPrivacyScreen(
+    //       createTailoredOptions(['debugMode'], skynetConfig, AWS)
+    //     ),
+    //     ...additionalMiddleware.map((mid) =>
+    //       mid(
+    //         createTailoredOptions(
+    //           ['service', 'eventType', 'isBulk', 'debugMode'],
+    //           skynetConfig,
+    //           false
+    //         )
+    //       )
+    //     ),
+    //   ];
+    //   break;
     case 'fetch':
     case 'transition':
+      // Add another middleware here at the begeinning of the array which will take the workerFile and pass it to
+      // the worker
+
       middleware = [
-        withMessageProcessing(
+        withAwsImports(
+          AWS,
+          workerFile,
+        ),
+        // withTokenProcessingAndSNSPublishing
+        withInputValidation(
           createTailoredOptions(
             [
               'isBulk',
@@ -117,11 +130,10 @@ export const useSkynet = (
               'debugMode',
             ],
             skynetConfig,
-            AWS
           )
         ),
-        withContextPrep(
-          createTailoredOptions(['debugMode'], skynetConfig, AWS)
+        withTokenValidationAndContextPrep(
+          createTailoredOptions(['debugMode'], skynetConfig)
         ),
         ...(skynetConfig.hasServiceConfig
           ? [
@@ -129,7 +141,6 @@ export const useSkynet = (
                 createTailoredOptions(
                   ['service', 'debugMode'],
                   skynetConfig,
-                  AWS
                 )
               ),
             ]
@@ -140,14 +151,12 @@ export const useSkynet = (
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                  AWS
                 )
               ),
               withMads(
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                  AWS
                 )
               ),
             ]
@@ -156,36 +165,35 @@ export const useSkynet = (
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                  AWS
                 )
               ),
             ]), // eventually swap for Mads as default
-        withPrivacyScreen(
-          createTailoredOptions(['debugMode'], skynetConfig, AWS)
-        ),
-        ...additionalMiddleware.map((mid) =>
-          mid(
-            createTailoredOptions(
-              ['service', 'eventType', 'isBulk', 'debugMode'],
-              skynetConfig,
-              false
-            )
-          )
-        ),
+        // withPrivacyScreen(
+        //   createTailoredOptions(['debugMode'], skynetConfig, AWS)
+        // ),
+        // ...additionalMiddleware.map((mid) =>
+        //   mid(
+        //     createTailoredOptions(
+        //       ['service', 'eventType', 'isBulk', 'debugMode'],
+        //       skynetConfig,
+        //       false
+        //     )
+        //   )
+        // ),
       ];
 
-      if (skynetConfig.useThrottling) {
-        middleware.unshift(
-          withThrottling(
-            createTailoredOptions(
-              ['service', 'isBulk', 'throttleOptions'],
-              skynetConfig,
-              AWS
-            )
-          )
-        );
-      }
-      break;
+    //   if (skynetConfig.useThrottling) {
+    //     middleware.unshift(
+    //       withThrottling(
+    //         createTailoredOptions(
+    //           ['service', 'isBulk', 'throttleOptions'],
+    //           skynetConfig,
+    //           AWS
+    //         )
+    //       )
+    //     );
+    //   }
+    //   break;
     default:
       middleware = [];
   }
@@ -196,52 +204,13 @@ export const useSkynet = (
   );
 };
 
-/**
- * This is the fetch request handler
- * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {Object} d is the data to be saved
- * @param {string} s service is the name of the service
- */
-export const setupDatabase = async (AWS: any, d: any, s: string) => {
-  let data = '';
-  if (typeof d === 'object') {
-    data = d;
-  } else {
-    try {
-      data = JSON.parse(d);
-    } catch (e) {
-      console.log(
-        'Unable to parse the database file. Please check if it is a valid JSON document.'
-      );
-      return;
-    }
-  }
-  // eslint-disable-next-line consistent-return
-  return sDb(AWS, data, s);
-};
-
-// TODO: I think we should be able to kill this - I'm not sure what currently uses it, it was a Bharath add.  Http requests should go through management-svc, we don't need a separate endpoint on every service just to push the request into SNS
-/**
- * This is the get http request handler
- * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
- * @param {string} r is the region of AWS that this service is running in
- * @param {string} s service is the name of the service
- * @param {string} a account is AWS the account number
- * @param {object} b is the event input
- */
-export const httpReqHandler = async (
-  AWS: any,
-  r: string,
-  s: string,
-  a: string,
-  b: any,
-  c: any
-) => gpH(AWS, r, s, a, b, c);
 
 export const utils = {
   addToEventContext,
 };
 
-export const middleware = {
-  withCrmData,
-};
+// export const middleware = {
+//   withCrmData,
+// };
+
+export  { CoreSkynetConfig };

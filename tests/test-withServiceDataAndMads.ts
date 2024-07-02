@@ -4,6 +4,8 @@ import withAwsImports from '../src/middleware/withAwsImports';
 import withInputValidation from '../src/middleware/withInputValidation';
 import withTokenValidationAndContextPrep from '../src/middleware/withTokenValidationAndContextPrep';
 import withVendorConfig from '../src/middleware/withVendorConfig';
+import withServiceData from '../src/middleware/withServiceData';
+import withMads from '../src/middleware/withMads';
 import { getMiddyInternal } from '../src/library/util';
 // import { AWS } from '../src/library/awsImports';
 import { Options } from '../src/library/sharedTypes';
@@ -12,27 +14,27 @@ import fs from 'fs/promises';
 import * as path from 'path';
 // import * as ts from 'typescript';
 
-const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep, withVendorConfig] as any[];
+const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep, withVendorConfig, withServiceData, withMads] as any[];
 
-const coreSettings = {
+// const coreSettings = {
+//   region: 'us-east-1',
+//   service: 'user-acg',
+//   account: '765342366425',
+//   useThrottling: false,
+//   maxMessagesPerInstance: 20,
+//   isBulk: false,
+//   eventType: 'fetch',
+// } as Options;
+
+const sharedSkynetConfig: Options = {
   region: 'us-east-1',
   service: 'user-acg',
   account: '765342366425',
-  useThrottling: false,
-  maxMessagesPerInstance: 20,
+  debugMode: true,
   isBulk: false,
   eventType: 'fetch',
-} as Options;
-
-// const sharedSkynetConfig: Options = {
-//   region: 'us-east-1',
-//   service: 'testService',
-//   account: '765342366425',
-//   debugMode: true,
-//   isBulk: false,
-//   eventType: 'fetch',
-//   maxMessagesPerInstance: 20,
-// };
+  maxMessagesPerInstance: 20,
+};
 
 // Prepare the event for testing
 
@@ -122,12 +124,14 @@ const test = async (event: any) => {
   const middifiedHandler = middy(handler);
   const workerFileData = await fs.readFile(workerFilePath, 'utf8');
   middifiedHandler.use(withAwsImports(awsImports, workerFileData));
-  middifiedHandler.use(middlewareToTest[0](coreSettings));
-  middifiedHandler.use(middlewareToTest[1](coreSettings));
-  middifiedHandler.use(middlewareToTest[2](coreSettings));
+  middifiedHandler.use(middlewareToTest[0](sharedSkynetConfig));
+  middifiedHandler.use(middlewareToTest[1](sharedSkynetConfig));
+  middifiedHandler.use(middlewareToTest[2](sharedSkynetConfig));
+  middifiedHandler.use(middlewareToTest[3](sharedSkynetConfig));
+  middifiedHandler.use(middlewareToTest[4](sharedSkynetConfig));
   middifiedHandler.use({
     before: async (request) => {
-      console.log('RUNNING AFTER SUCCESSFUL CONTEXT PREP');
+      console.log('RUNNING AFTER SUCCESSFUL CONTEXT PREP', JSON.stringify(request, null, 4));
         const vendorConfig = await getMiddyInternal(request, [
             'vendorConfig',
           ]);

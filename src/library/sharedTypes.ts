@@ -5,6 +5,7 @@ export type Context = {
   account: any;
   product?: any;
   tile?: any;
+  token?: string;
 };
 
 interface TransitionMetadata extends StandardMetadata {
@@ -87,7 +88,7 @@ export interface CoreSkynetConfig {
   region: string;
   service: string;
   account: string;
-  useThrottling?: string;
+  useThrottling?: boolean;
   throttleOptions?: ThrottleSettings;
   maxMessagesPerInstance?: number;
   debugMode?: boolean;

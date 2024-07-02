@@ -1,22 +1,20 @@
-import middy from '@middy/core';
-import { AWS as awsImports } from '../src/library/awsImports';
 import withAwsImports from '../src/middleware/withAwsImports';
-import withInputValidation from '../src/middleware/withInputValidation';
-import withTokenValidationAndContextPrep from '../src/middleware/withTokenValidationAndContextPrep';
-import withVendorConfig from '../src/middleware/withVendorConfig';
+import { AWS as awsImports } from '../src/library/awsImports';
+import withMessageProcessing from '../src/middleware/withInputValidation';
+import middy from '@middy/core';
 import { getMiddyInternal } from '../src/library/util';
 // import { AWS } from '../src/library/awsImports';
 import { Options } from '../src/library/sharedTypes';
-// import { fetchRecordsByQuery } from '../src/library/dynamo';
+import { fetchRecordsByQuery } from '../src/library/dynamo';
 import fs from 'fs/promises';
 import * as path from 'path';
 // import * as ts from 'typescript';
 
-const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep, withVendorConfig] as any[];
+const middlewareToTest = [withMessageProcessing];
 
 const coreSettings = {
   region: 'us-east-1',
-  service: 'user-acg',
+  service: 'dynamodb',
   account: '765342366425',
   useThrottling: false,
   maxMessagesPerInstance: 20,
@@ -36,8 +34,8 @@ const coreSettings = {
 
 // Prepare the event for testing
 
-const userId = '6682e9de46e04b26a2171628';
-const accountId = '760800e5-af23-453d-9d5b-0634494eb3e4';
+const userId = '6332a2f75bafd02fb95e5c22';
+const accountId = 'bf6318f2-6d0b-4703-9c53-e776f04b3957';
 
 const sampleSQSEvent = {
   Records: [
@@ -88,7 +86,6 @@ const sampleSQSEvent = {
         Message: {
           payload: {},
           context: {
-            token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJsb2dpbnNDb3VudCI6MSwidXNlcnNJblNjb3BlIjpbIjY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdLCJyb2xlcyI6WyJ1c2VyIl0sImdyb3VwcyI6WyJTb3VyY2U6Y29tcGFueSJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcxOTg1NTY0OCwiZXhwIjoxNzE5OTQyMDQ4LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.D63bbP3Ull4ZZchjeN75JyaCgHPeqcHKod-mIIBD2BEIv4SGeakiraNhYlpA1nYWKsGtlWP4nDhRctDTxi9Jkkk1S3yq90cgV4C5frGppgM6ZQZzGukRizW-Yb1B-jydGly8L0p0ejXtoNJnrILigxo1eUke7JLKs1ZF6ZAPitjuWkc0fQc0Qd94LKvt02IoRwI-XV50vo76maPWcqiFuPH90ajGFsF2nAUq9prOQN685v5MNayiI6GkH38R_97vmtOLjb0Mz3wfGzoi6gue9JsThPcjnORDMIWUE_m1vEL2Jemo6GDaPP_apJWh2a6V1Te34QDGdsmMGmhL8aQJwQ',
             user: {
               userId,
               accountId,
@@ -109,30 +106,45 @@ const sampleSQSEvent = {
 
 const test = async (event: any) => {
   const handler = (data: any) => {
-    // console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
+    console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
     return data.map((m: any) => ({ ...m, workerResp: { res: 'hello world' } }));
   };
 
+  const middifiedHandler = middy(handler);
   const getWorkerFilePath = () => {
     // const baseDir = process.env.NODE_ENV === 'development' ? __dirname : path.join(__dirname, '../src');
     return path.resolve(path.join(__dirname, '../../tests', 'workers', 'fetchWorker.ts'));
   };
   const workerFilePath = getWorkerFilePath();;
   // const workerFilePath = `./workers/fetchWorker.ts`;
-  const middifiedHandler = middy(handler);
   const workerFileData = await fs.readFile(workerFilePath, 'utf8');
   middifiedHandler.use(withAwsImports(awsImports, workerFileData));
   middifiedHandler.use(middlewareToTest[0](coreSettings));
-  middifiedHandler.use(middlewareToTest[1](coreSettings));
-  middifiedHandler.use(middlewareToTest[2](coreSettings));
   middifiedHandler.use({
     before: async (request) => {
-      console.log('RUNNING AFTER SUCCESSFUL CONTEXT PREP');
-        const vendorConfig = await getMiddyInternal(request, [
-            'vendorConfig',
-          ]);
-          console.log('VendorConfig should be printed here');
-          console.log('VENDORCONFIG - ', JSON.stringify(vendorConfig, null, 4));
+      const getMiddyInternalVal = await getMiddyInternal(request, [
+        'AWS',
+        'SQSClient'
+      ]);
+      console.log('SQS ---------------');
+      console.log(getMiddyInternalVal.SQSClient);
+      const queryObject = {
+        TableName: 'User',
+        KeyConditionExpression: `#userId = :userId`,
+        ExpressionAttributeNames: {
+          '#userId': 'userId',
+        },
+        ExpressionAttributeValues: {
+          ':userId': { S: '6332a2f75bafd02fb95e5c22' },
+        },
+      }
+      const resp = await fetchRecordsByQuery(
+        getMiddyInternalVal.AWS,
+        coreSettings,
+        queryObject,
+        true,
+      );
+      console.log('context - ', resp.items[0]);
     },
   });
 

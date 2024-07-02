@@ -1,32 +1,32 @@
 {
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/eslint-recommended",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:prettier/recommended"
-  ],
-  "env": {
-    "node": true
-  },
-  "parser": "@typescript-eslint/parser",
-  "plugins": ["@typescript-eslint/eslint-plugin"],
-  "settings": {
-    "import/parsers": {
-      "@typescript-eslint/parser": [".ts", ".tsx"]
+    "extends": [
+      "eslint:recommended",
+      "plugin:@typescript-eslint/eslint-recommended",
+      "plugin:@typescript-eslint/recommended",
+      "plugin:prettier/recommended"
+    ],
+    "env": {
+      "node": true
     },
-    "import/resolver": {
-      "typescript": {}
+    "parser": "@typescript-eslint/parser",
+    "plugins": ["@typescript-eslint/eslint-plugin"],
+    "settings": {
+      "import/parsers": {
+        "@typescript-eslint/parser": [".ts", ".tsx"]
+      },
+      "import/resolver": {
+        "typescript": {}
+      }
+    },
+    "parserOptions": {
+      "project": "./tsconfig.json",
+      "tsconfigRootDir": "./",
+      "sourceType": "module",
+      "ecmaVersion": 2019
+    },
+    "rules": {
+      "@typescript-eslint/no-explicit-any": "off",
+      "no-prototype-builtins": "off",
+      "quotes": [2, "single", "avoid-escape"]
     }
-  },
-  "parserOptions": {
-    "project": "./tsconfig.json",
-    "tsconfigRootDir": "./",
-    "sourceType": "module",
-    "ecmaVersion": 2019
-  },
-  "rules": {
-    "@typescript-eslint/no-explicit-any": "off",
-    "no-prototype-builtins": "off",
-    "quotes": [2, "single", "avoid-escape"]
   }
-}
