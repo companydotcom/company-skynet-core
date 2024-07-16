@@ -25,7 +25,7 @@
     // "src/handlers/setupDatabase.ts",
     // "src/handlers/getPostHttp.ts",
     "tests/*.ts",
-    "tests/**/*.ts",
+    "tests/**/*.ts"
   ],
-  "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*", ".husky/**/*", ".yarn/**/*"]
+  "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*", ".husky/**/*", ".yarn/**/*", "Untitled-1"]
 }

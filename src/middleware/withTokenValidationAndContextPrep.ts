@@ -117,13 +117,13 @@ const validateAndDecodeToken = async (token: string): Promise<DecodedResult> => 
 const withTokenValidationAndContextPrep = (
   opt: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  console.log('Running withTokenValidationAndContextPrep middleware - BEFORE');
   const middlewareName = 'withTokenValidationAndContextPrep';
   const options = { ...defaults, ...opt };
   const before: middy.MiddlewareFn<
-    [SkynetMessage],
-    [HandledSkynetMessage]
+  [SkynetMessage],
+  [HandledSkynetMessage]
   > = async (request): Promise<void> => {
+    console.log('Running withTokenValidationAndContextPrep middleware - BEFORE');
     if (options.debugMode) {
       console.log('before', middlewareName);
     }

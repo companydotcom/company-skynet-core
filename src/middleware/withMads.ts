@@ -117,16 +117,16 @@ const defaults = {
 const createWithMads = (
   opts: Options
 ): middy.MiddlewareObj<SkynetMessage[], HandledSkynetMessage[]> => {
-  console.log('Running withMads middleware - BEFORE');
   const options = { ...defaults, ...opts };
   const middlewareName = 'withMads';
   const internalMadsCache = {} as any;
   // const { service } = options;
-
+  
   const before: middy.MiddlewareFn<
-    SkynetMessage[],
-    HandledSkynetMessage[]
+  SkynetMessage[],
+  HandledSkynetMessage[]
   > = async (request): Promise<void> => {
+    console.log('Running withMads middleware - BEFORE');
     if (options.debugMode) {
       console.log('before', middlewareName);
     }

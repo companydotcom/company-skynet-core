@@ -2,6 +2,8 @@
 // import AWSXRay from 'aws-xray-sdk';
 // import { DynamoDBClient } from '@aws-sdk/client-dynamodb;
 
+import { Options } from "./sharedTypes";
+
 // const ddb = AWSXRay.captureAWSv3Client(new DynamoDBClient({ region: "region" }));
 
 export interface QueryObject {
@@ -26,13 +28,36 @@ type FetchRecordsByQueryResult = FetchRecordsByQueryResultWithItems | any[];
 //   return new Promise(resolve => setTimeout(resolve, ms));
 // };
 
+export const incrementColumn = async (
+  AWS: any,
+  options: Options,
+  tName: string,
+  srchParams: any,
+  colName: string,
+  incVal = 1
+) => {
+  const client = new AWS.dynamoDbClient.DynamoDBClient({ region: options.region });
+  const params: any = {
+    TableName: tName,
+    Key: srchParams,
+    UpdateExpression: `ADD ${colName} :val`,
+    ExpressionAttributeValues: {
+      ':val': incVal,
+    },
+  };
+  console.log('params - ', JSON.stringify(params, null, 4));
+  const command = new AWS.dynamoDbLib.UpdateCommand(params);
+  console.log('----------------------------');
+  return client.send(command);
+};
+
 export const fetchRecordsByQuery = async (
   AWS: any,
   skynetConfig: any,
   queryObject: QueryObject,
   paginate: boolean = false
 ): Promise<FetchRecordsByQueryResult | any> => {
-  // console.log('skynetConfig - ', JSON.stringify(skynetConfig, null, 4));
+  console.log('queryObject - ', JSON.stringify(queryObject, null, 4));
   // console.log('process.env.region - ', skynetConfig.region);
   const dynamodb = new AWS.dynamoDbClient.DynamoDBClient({ region: skynetConfig.region });
   // console.log("Query =>", JSON.stringify(queryObject, null, 4));

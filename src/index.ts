@@ -1,5 +1,5 @@
 import middy from '@middy/core';
-import {  addToEventContext, neverThrowError } from './library/util';
+import { addToEventContext, neverThrowError } from './library/util';
 // import { AWS } from './library/awsImports';
 import withAwsImports from './middleware/withAwsImports';
 import withInputValidation from './middleware/withInputValidation';
@@ -7,9 +7,9 @@ import withTokenValidationAndContextPrep from './middleware/withTokenValidationA
 import withVendorConfig from './middleware/withVendorConfig';
 import withServiceData from './middleware/withServiceData';
 import withMads from './middleware/withMads';
-// import withThrottling from './middleware/withThrottling';
+import withPrivacyScreen from './middleware/withPrivacyScreen';
+import withThrottling from './middleware/withThrottling';
 // import withCrmData from './middleware/withCrmData';
-// import withPrivacyScreen from './middleware/withPrivacyScreen';
 // import { fetchRecordsByQuery } from './library/dynamo';
 import {
   CoreSkynetConfig,
@@ -32,17 +32,15 @@ const createTailoredOptions = (
   );
 };
 
-
-export const useSkynet = async(
+export const useSkynet = async (
   AWS: any,
   skynetConfig: any,
   worker: (params: any) => any,
   workerFile: string,
-  // additionalMiddleware: [(opt: Options) => middy.MiddlewareObj]
+  additionalMiddleware: [(opt: Options) => middy.MiddlewareObj],
 ) => {
   console.log('skynetConfig', JSON.stringify(skynetConfig, null, 4));
 
-  
   // console.log('Preparing Skynet Handler');
   const handler = middy(async (event: any) => {
     console.log('Delegating processed messages to worker:');
@@ -52,14 +50,14 @@ export const useSkynet = async(
         neverThrowError(m, worker).then((result: any) => {
           console.log(
             'Received worker response',
-            JSON.stringify(result.workerResp, null, 2)
+            JSON.stringify(result.workerResp, null, 2),
           );
           return {
             ...result,
             ...result.params,
           };
-        })
-      )
+        }),
+      ),
     );
   });
 
@@ -113,10 +111,6 @@ export const useSkynet = async(
       // the worker
 
       middleware = [
-        withAwsImports(
-          AWS,
-          workerFile,
-        ),
         // withTokenProcessingAndSNSPublishing
         withInputValidation(
           createTailoredOptions(
@@ -130,18 +124,15 @@ export const useSkynet = async(
               'debugMode',
             ],
             skynetConfig,
-          )
+          ),
         ),
         withTokenValidationAndContextPrep(
-          createTailoredOptions(['debugMode'], skynetConfig)
+          createTailoredOptions(['debugMode'], skynetConfig),
         ),
         ...(skynetConfig.hasServiceConfig
           ? [
               withVendorConfig(
-                createTailoredOptions(
-                  ['service', 'debugMode'],
-                  skynetConfig,
-                )
+                createTailoredOptions(['service', 'debugMode'], skynetConfig),
               ),
             ]
           : []),
@@ -151,13 +142,13 @@ export const useSkynet = async(
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                )
+                ),
               ),
               withMads(
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                )
+                ),
               ),
             ]
           : [
@@ -165,45 +156,44 @@ export const useSkynet = async(
                 createTailoredOptions(
                   ['service', 'region', 'account', 'debugMode'],
                   skynetConfig,
-                )
+                ),
               ),
             ]), // eventually swap for Mads as default
-        // withPrivacyScreen(
-        //   createTailoredOptions(['debugMode'], skynetConfig, AWS)
-        // ),
-        // ...additionalMiddleware.map((mid) =>
-        //   mid(
-        //     createTailoredOptions(
-        //       ['service', 'eventType', 'isBulk', 'debugMode'],
-        //       skynetConfig,
-        //       false
-        //     )
-        //   )
-        // ),
+        withPrivacyScreen(createTailoredOptions(['debugMode'], skynetConfig)),
+        ...additionalMiddleware.map((mid) =>
+          mid(
+            createTailoredOptions(
+              ['service', 'eventType', 'isBulk', 'debugMode'],
+              skynetConfig,
+            ),
+          ),
+        ),
       ];
 
-    //   if (skynetConfig.useThrottling) {
-    //     middleware.unshift(
-    //       withThrottling(
-    //         createTailoredOptions(
-    //           ['service', 'isBulk', 'throttleOptions'],
-    //           skynetConfig,
-    //           AWS
-    //         )
-    //       )
-    //     );
-    //   }
-    //   break;
+      if (skynetConfig.useThrottling) {
+        middleware.unshift(
+          withThrottling(
+            createTailoredOptions(
+              ['service', 'isBulk', 'throttleOptions'],
+              skynetConfig,
+            ),
+          ),
+        );
+      }
+      middleware.unshift(withAwsImports(AWS, workerFile));
+      break;
     default:
       middleware = [];
   }
+  console.log(
+    'middleware -------------------------------------------------------------------------------------------------------------------',
+  );
   console.log('Applying', middleware.length, 'middlewares.');
   return middleware.reduce(
     (middyHandler, midlw) => middyHandler.use(midlw),
-    handler
+    handler,
   );
 };
-
 
 export const utils = {
   addToEventContext,
@@ -213,4 +203,4 @@ export const utils = {
 //   withCrmData,
 // };
 
-export  { CoreSkynetConfig };
+export { CoreSkynetConfig };

@@ -77,13 +77,13 @@ const defaults = {
 const withServiceData = (
   opts: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  console.log('Running withServiceData middleware - BEFORE');
   const middlewareName = 'withServiceData';
   const options = { ...defaults, ...opts } as Options;
   const serviceDataBefore: middy.MiddlewareFn<
-    SkynetMessage[],
-    HandledSkynetMessage[]
+  SkynetMessage[],
+  HandledSkynetMessage[]
   > = async (request): Promise<void> => {
+    console.log('Running withServiceData middleware - BEFORE');
     if (options.debugMode) {
       console.log('before', middlewareName);
     }

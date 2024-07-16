@@ -69,6 +69,24 @@
       "program": "${workspaceFolder}/lib/tests/test-withServiceDataAndMads.js",
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "tsc: build - tsconfig.json"
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "6 - With Privacy Screen",
+      "program": "${workspaceFolder}/lib/tests/test-withPrivacyScreen.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json"
+    },
+    {
+      "console": "integratedTerminal",
+      "type": "node",
+      "request": "launch",
+      "name": "7 - With Throttling",
+      "program": "${workspaceFolder}/lib/tests/test-withThrottling.js",
+      "envFile": "${workspaceFolder}/.env",
+      "preLaunchTask": "tsc: build - tsconfig.json"
     }
   ]
 }

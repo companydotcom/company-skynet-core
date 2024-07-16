@@ -12,12 +12,12 @@ import { fetchRecordsByQuery } from '../library/dynamo';
 const createWithVendorConfig = (
   options: Options
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
-  console.log('Running withVendorConfig middleware - BEFORE');
   const middlewareName = 'withVendorConfig';
   const before: middy.MiddlewareFn<
-    [SkynetMessage],
-    [HandledSkynetMessage]
+  [SkynetMessage],
+  [HandledSkynetMessage]
   > = async (request): Promise<void> => {
+    console.log('Running withVendorConfig middleware - BEFORE');
     const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
     if (options.debugMode) {
       console.log('before', middlewareName);

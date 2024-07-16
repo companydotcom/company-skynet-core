@@ -80,6 +80,7 @@ export type Options = {
   maxMessagesPerInstance?: number;
   throttleOptions?: ThrottleSettings;
   debugMode?: boolean;
+  iter?: number;
 };
 
 export interface CoreSkynetConfig {
