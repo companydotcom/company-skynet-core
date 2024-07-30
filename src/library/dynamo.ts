@@ -2,7 +2,7 @@
 // import AWSXRay from 'aws-xray-sdk';
 // import { DynamoDBClient } from '@aws-sdk/client-dynamodb;
 
-import { Options } from "./sharedTypes";
+import { Options } from './sharedTypes';
 
 // const ddb = AWSXRay.captureAWSv3Client(new DynamoDBClient({ region: "region" }));
 
@@ -13,7 +13,7 @@ export interface QueryObject {
   KeyConditionExpression: string;
   FilterExpression?: string;
   ExpressionAttributeValues: { [key: string]: any };
-  ExpressionAttributeNames?: {[key: string]: string};
+  ExpressionAttributeNames?: { [key: string]: string };
 }
 
 interface FetchRecordsByQueryResultWithItems {
@@ -23,10 +23,9 @@ interface FetchRecordsByQueryResultWithItems {
 
 type FetchRecordsByQueryResult = FetchRecordsByQueryResultWithItems | any[];
 
-
-// const sleep = async (ms: number): Promise<void> => {
-//   return new Promise(resolve => setTimeout(resolve, ms));
-// };
+const sleep = async (ms: number): Promise<void> => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
 
 export const incrementColumn = async (
   AWS: any,
@@ -34,9 +33,11 @@ export const incrementColumn = async (
   tName: string,
   srchParams: any,
   colName: string,
-  incVal = 1
+  incVal = 1,
 ) => {
-  const client = new AWS.dynamoDbClient.DynamoDBClient({ region: options.region });
+  const client = new AWS.dynamoDbClient.DynamoDBClient({
+    region: options.region,
+  });
   const params: any = {
     TableName: tName,
     Key: srchParams,
@@ -55,14 +56,16 @@ export const fetchRecordsByQuery = async (
   AWS: any,
   skynetConfig: any,
   queryObject: QueryObject,
-  paginate: boolean = false
+  paginate: boolean = false,
 ): Promise<FetchRecordsByQueryResult | any> => {
   console.log('queryObject - ', JSON.stringify(queryObject, null, 4));
   // console.log('process.env.region - ', skynetConfig.region);
-  const dynamodb = new AWS.dynamoDbClient.DynamoDBClient({ region: skynetConfig.region });
+  const dynamodb = new AWS.dynamoDbClient.DynamoDBClient({
+    region: skynetConfig.region,
+  });
   // console.log("Query =>", JSON.stringify(queryObject, null, 4));
   // Add safe fetch limit if one is not set
-  if (!queryObject.hasOwnProperty("Limit")) {
+  if (!queryObject.hasOwnProperty('Limit')) {
     queryObject.Limit = 1000;
   }
 
@@ -76,8 +79,10 @@ export const fetchRecordsByQuery = async (
       }
 
       return {
-        items: queryResult.Items.map((item: any) => AWS.dynamoDbUtils.unmarshall(item)),
-        exclusiveStartKey: queryResult.hasOwnProperty("LastEvaluatedKey")
+        items: queryResult.Items.map((item: any) =>
+          AWS.dynamoDbUtils.unmarshall(item),
+        ),
+        exclusiveStartKey: queryResult.hasOwnProperty('LastEvaluatedKey')
           ? queryResult.LastEvaluatedKey
           : undefined,
       };
@@ -87,13 +92,14 @@ export const fetchRecordsByQuery = async (
       return [];
     }
     // Convert DynamoDb style objects to simple JavaScript objects
-    return queryResult.Items.map((item: any) => AWS.dynamoDbUtils.unmarshall(item));
+    return queryResult.Items.map((item: any) =>
+      AWS.dynamoDbUtils.unmarshall(item),
+    );
   } catch (err) {
     console.error(err);
     throw err;
   }
 };
-
 
 // // export async function batchFetchFromDynamoDb(
 // //   records: any[],
@@ -122,76 +128,86 @@ export const fetchRecordsByQuery = async (
 // //   }
 // // }
 
-// export async function batchPutIntoDynamoDb(
-//   records: any[],
-//   tableName: string,
-//   backoffTime = 1000
-// ): Promise< any > {
-//   const preparedRecords = records.map((record) => {
-//     return {
-//       PutRequest: { Item: marshall(record, { removeUndefinedValues: true }) },
-//     };
-//   });
-  
-//   const bulkRequests = [];
+export async function batchPutIntoDynamoDb(
+  AWS: any,
+  options: any,
+  records: any[],
+  tableName: string,
+  backoffTime = 1000,
+): Promise<any> {
+  const dynamodb = new AWS.dynamoDbClient.DynamoDBClient({
+    region: options.region,
+  });
+  const preparedRecords = records.map((record) => {
+    return {
+      PutRequest: {
+        Item: AWS.dynamoDbUtils.marshall(record, {
+          removeUndefinedValues: true,
+        }),
+      },
+    };
+  });
 
-//   while (preparedRecords.length > 0) {
-//     bulkRequests.push(
-//       new BatchWriteItemCommand({
-//         RequestItems: {
-//           [tableName]: preparedRecords.splice(0, 25),
-//         },
-//       })
-//     );
-//   }
+  const bulkRequests = [];
 
-//   console.log(
-//     `DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${
-//       bulkRequests.length
-//     } with each request having 25 records except the last one having ${records.length -
-//       25 * (bulkRequests.length - 1)} records`
-//   );
+  while (preparedRecords.length > 0) {
+    bulkRequests.push(
+      new AWS.dynamoDbClient.BatchWriteItemCommand({
+        RequestItems: {
+          [tableName]: preparedRecords.splice(0, 25),
+        },
+      }),
+    );
+  }
 
-//   try {
-//     const results: any = await Promise.all(
-//       bulkRequests.map((command) => dynamodb.send(command))
-//     );
-//       console.log('results - ', JSON.stringify(results, null, 4));
-//     const unprocessedRecords: any = results
-//       .map((result) => {
-//         if (
-//           result.hasOwnProperty("UnprocessedItems") &&
-//           result.UnprocessedItems.hasOwnProperty(tableName) &&
-//           result.UnprocessedItems[tableName].length > 0
-//         ) {
-//           return result.UnprocessedItems[tableName].map((unprocessedRec) =>
-//             unmarshall(unprocessedRec.PutRequest.Item)
-//           );
-//         }
-//         return [];
-//       })
-//       .reduce((output, currentArray) => output.concat(currentArray));
+  console.log(
+    `DYNAMODB SERVICE: batchPutIntoDynamoDb: totalBulkRequestsSent: ${
+      bulkRequests.length
+    } with each request having 25 records except the last one having ${
+      records.length - 25 * (bulkRequests.length - 1)
+    } records`,
+  );
 
-//     if (unprocessedRecords.length > 0) {
-//       await sleep(backoffTime);
-//       return batchPutIntoDynamoDb(
-//         unprocessedRecords,
-//         tableName,
-//         backoffTime + 1000
-//       );
-//     }
+  try {
+    const results: any = await Promise.all(
+      bulkRequests.map((command) => dynamodb.send(command)),
+    );
+    console.log('results - ', JSON.stringify(results, null, 4));
+    const unprocessedRecords: any = results
+      .map((result: any) => {
+        if (
+          result.hasOwnProperty('UnprocessedItems') &&
+          result.UnprocessedItems.hasOwnProperty(tableName) &&
+          result.UnprocessedItems[tableName].length > 0
+        ) {
+          return result.UnprocessedItems[tableName].map((unprocessedRec: any) =>
+            AWS.dynamoDbUtils.unmarshall(unprocessedRec.PutRequest.Item),
+          );
+        }
+        return [];
+      })
+      .reduce((output: any, currentArray: any) => output.concat(currentArray));
 
-//     return {
-//       unprocessedRecords: [],
-//       success: true,
-//     };
-//   } catch (err) {
-//     console.log("Error in inserting to table - ", err.toString());
-//     throw err;
-//   }
-// }
+    if (unprocessedRecords.length > 0) {
+      await sleep(backoffTime);
+      return batchPutIntoDynamoDb(
+        AWS,
+        options,
+        unprocessedRecords,
+        tableName,
+        backoffTime + 1000,
+      );
+    }
 
-
+    return {
+      unprocessedRecords: [],
+      success: true,
+    };
+  } catch (err: any) {
+    console.log('Error in inserting to table - ', err.toString());
+    throw err;
+  }
+}
 
 // export const deleteItemByKeys = async (tableName: string, partitionKeyName: string, partitionKeyValue: string, sortKeyName?: string, sortKeyValue?: string) => {
 //   const key: AWS.DynamoDB.Key = {
@@ -218,7 +234,6 @@ export const fetchRecordsByQuery = async (
 //   }
 // };
 
-
 // export const putItemIntoDynamoDB = async(params: PutItemInput) => {
 //   try {
 //     // Put the item into DynamoDB
@@ -230,7 +245,6 @@ export const fetchRecordsByQuery = async (
 //     throw error;
 //   }
 // }
-
 
 // export const fetchCountQuery = async (queryObject: QueryObject) => {
 //   try {

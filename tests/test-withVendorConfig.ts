@@ -1,7 +1,7 @@
 import middy from '@middy/core';
 import { AWS as awsImports } from '../src/library/awsImports';
 import withAwsImports from '../src/middleware/withAwsImports';
-import withInputValidation from '../src/middleware/withInputValidation';
+import withInputValidation from '../src/middleware/withMessageProcessing';
 import withTokenValidationAndContextPrep from '../src/middleware/withTokenValidationAndContextPrep';
 import withVendorConfig from '../src/middleware/withVendorConfig';
 import { getMiddyInternal } from '../src/library/util';
@@ -36,8 +36,8 @@ const coreSettings = {
 
 // Prepare the event for testing
 
-const userId = '6682e9de46e04b26a2171628';
-const accountId = '760800e5-af23-453d-9d5b-0634494eb3e4';
+const userId = "6682e9de46e04b26a2171628";
+const accountId = "760800e5-af23-453d-9d5b-0634494eb3e4";
 
 const sampleSQSEvent = {
   Records: [
@@ -88,7 +88,7 @@ const sampleSQSEvent = {
         Message: {
           payload: {},
           context: {
-            token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6Mywicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTEwOTM5MiwiZXhwIjoxNzIxMTk1NzkyLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.v_sf1LaYrk07okwlvMGNAiRPhUXu0SrPCe2Bob_wjZJ-n0EYiBQYB7G54wAaf-3e5bv-oXp7u7xvFVt1vo5WpnSKEXYPwk3cLz-KtUrbSNroFaXYNbKrLkWpFB-pYG7OmcZ40HxzPyJU8LeXUoAe2GunY9OvDbdvAy_uWCje6oHShc-VP9756IJxPGBHMpvk6w9Ed0pZAh9BxrNfJiQjarr71UgQ7Lh3wBN1bsyxYbwYY8NnevQ7M8FNTzLHsVmlSlyfiQlojoq0Sz6FYCNC2Ok6L3oMvdcBB_zyFDtQudbtcYzate8U-up955xyf-HzmT2eIaoHU9O2F9O2O_oLEw',
+            token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6NSwicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTg5NjMyMSwiZXhwIjoxNzIxOTgyNzIxLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.o2ZHfxENpnAXbztKbm_n9pEF_PHLSoJzKrZlaEtlbuyMxiEK3vyEVypLH7Z1rmy29wIDHb_aEPNRl6AN-AElRgasX52qTI65uHm9z-AjJvzMgsStjqteVOF1MzvnGeNU3owR40aAuy7FOdG51DSHNrBBsXvv_xzKE7hMEWQFN2PHy3IKSScwmy1AlUKAckrVc3IrnnKEDBm32ijYsJoykScEBY48GGE4td6xDpk2S9rQwJhTGDBYbl6vexZSjahD6hi0Q0JpAJpOnRDU2zv7rjIa7UxFw6hAPK1rZLYEJYT_kTILotegBThyQZSczD0DKHZek5pJfu_-jl2IBUvPCw',
             user: {
               userId,
               accountId,

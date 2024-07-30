@@ -1,21 +1,24 @@
 import { deepParseJson } from './util';
 
-const safeMsgFetchLimitPerInstance = 500;
+const SAFE_MSG_FETCH_LIMIT_PER_INSTANCE = 500;
+const MAX_MESSAGE_PER_BATCH = 10;
+const VISIBILITY_TIMEOUT = 60 * 15;
 /**
  * Convert the given SNS type attributes to simple JSON key-value pair of
  * attributes
  * @param {Object} attribs are the message attributes
  * @returns {[{String: *}]}
  */
-// eslint-disable-next-line arrow-body-style
-const unmarshallMsgAttribs = (attribs: any) => {
-  return Object.keys(attribs).reduce((res, key) => {
-    const { Type: type, Value: value } = attribs[key];
 
+const unmarshallMsgAttribs = (attribs: any) => {
+  return Object.keys(attribs).reduce((res: any, key: any) => {
+    const { Type: type, Value: value } = attribs[key];
     if (type !== 'String' && type !== 'Number') {
-      return { ...res, [key]: JSON.parse(value) };
+      res[key] = JSON.parse(value);
+    } else {
+      res[key] = value;
     }
-    return { ...res, [key]: value };
+    return res;
   }, {});
 };
 
@@ -34,7 +37,7 @@ export const parseMsg = (message: any) => {
       : deepParseJson(message.body);
   } catch (e1) {
     console.log(
-      'Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body'
+      'Error: withSqsConsumer - parseMsg: Did not get a JSON parsable message in body',
     );
     throw e1;
   }
@@ -60,15 +63,19 @@ export const sendMsg = async (
   AWS: any,
   region: string,
   qUrl: string,
-  msg: any
+  msg: any,
 ) => {
-  const sqs = new AWS.SQS({ region });
-  return sqs
-    .sendMessage({
-      QueueUrl: qUrl,
-      MessageBody: msg,
-    })
-    .promise();
+  const sqs = new AWS.sqsClient.SQSClient({ region });
+  const command = new AWS.sqsClient.SendMessageCommand({
+    QueueUrl: qUrl,
+    MessageBody: msg,
+  });
+  try {
+    return await sqs.send(command);
+  } catch (err) {
+    console.error('Error sending message to SQS:', err);
+    throw err;
+  }
 };
 
 /**
@@ -83,28 +90,26 @@ export const getMsgsFromQueue = async (
   AWS: any,
   region: string,
   msgCountToFetch: number,
-  QueueUrl: string
+  QueueUrl: string,
 ) => {
   console.log(`Fetching messages from SQS URL: ${QueueUrl}`);
-  const sqs = new AWS.SQS({ region });
+  const sqs = new AWS.sqsClient.SQSClient({ region });
   let messages: any[] = [];
   const proms = [];
-  let msgsToFetch =
-    msgCountToFetch < safeMsgFetchLimitPerInstance
-      ? msgCountToFetch
-      : safeMsgFetchLimitPerInstance;
+  let msgsToFetch = Math.min(
+    msgCountToFetch,
+    SAFE_MSG_FETCH_LIMIT_PER_INSTANCE,
+  );
+
   while (msgsToFetch > 0) {
-    const msgsToFetchThisIter = msgsToFetch < 10 ? msgsToFetch : 10;
+    const msgsToFetchThisIter = Math.min(msgsToFetch, MAX_MESSAGE_PER_BATCH);
     msgsToFetch -= msgsToFetchThisIter;
-    proms.push(
-      sqs
-        .receiveMessage({
-          QueueUrl,
-          MaxNumberOfMessages: msgsToFetchThisIter,
-          VisibilityTimeout: 900,
-        })
-        .promise()
-    );
+    const command = new AWS.sqsClient.ReceiveMessageCommand({
+      QueueUrl,
+      MaxNumberOfMessages: msgsToFetchThisIter,
+      VisibilityTimeout: VISIBILITY_TIMEOUT,
+    });
+    proms.push(sqs.send(command));
   }
   const resps = await Promise.all(proms);
   resps.forEach((resp) => {
@@ -127,13 +132,16 @@ export const deleteMsg = async (
   AWS: any,
   region: string,
   QueueUrl: string,
-  ReceiptHandle: string
+  ReceiptHandle: string,
 ) => {
-  const sqs = new AWS.SQS({ region });
-  sqs
-    .deleteMessage({
-      QueueUrl,
-      ReceiptHandle,
-    })
-    .promise();
+  const sqs = new AWS.sqsClient.SQSClient({ region });
+  const command = new AWS.sqsClient.DeleteMessageCommand({
+    QueueUrl,
+    ReceiptHandle,
+  });
+  try {
+    return await sqs.send(command);
+  } catch (err) {
+    console.error('Error deleting message from SQS:', err);
+  }
 };

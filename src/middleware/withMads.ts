@@ -10,72 +10,69 @@ import {
 import {
   transformMadsToReadFormat,
   evaluateMadsReadAccess,
-  // itemExists,
-  // findDuplicateMadsKeys,
+  itemExists,
+  findDuplicateMadsKeys,
   addToEventContext,
   getMiddyInternal,
 } from '../library/util';
-import { fetchRecordsByQuery } from '../library/dynamo';
+import { fetchRecordsByQuery, batchPutIntoDynamoDb } from '../library/dynamo';
+
+/**
+ * Fetch data from DynamoDB based on provided parameters.
+ * @param {any} AWS - AWS SDK instance.
+ * @param {Options} options - Query options.
+ * @param {string} tableName - Name of the DynamoDB table.
+ * @param {string} idKey - Primary key of the table.
+ * @param {string} idValue - Value of the primary key.
+ * @returns {Promise<any>} - Fetched data.
+ */
+const fetchData = async (
+  AWS: any,
+  options: Options,
+  tableName: string,
+  idKey: string,
+  idValue: string,
+): Promise<any> => {
+  if (!idValue) return undefined;
+  const response = await fetchRecordsByQuery(AWS, options, {
+    TableName: tableName,
+    ExpressionAttributeNames: { '#pk': idKey },
+    KeyConditionExpression: '#pk = :id',
+    ExpressionAttributeValues: { ':id': { S: idValue } },
+  });
+  if (response[0]?.globalMicroAppData) delete response[0].globalMicroAppData;
+  return response[0];
+};
 
 /**
  * Get the current user data from the database for the given accountId
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {string} userId is the userId for which the data needs to be fetched
  */
-// const getCurrentUserData = async (AWS: any, options: Options, userId: string) => {
-//   if (userId === '' || typeof userId === 'undefined') {
-//     return undefined;
-//   }
-//   const fetchResponse = await fetchRecordsByQuery(AWS, options, {
-//     TableName: 'User',
-//     ExpressionAttributeNames: { '#pk': 'userId' },
-//     KeyConditionExpression: '#pk = :uId',
-//     ExpressionAttributeValues: {
-//       ':uId': { S: userId },
-//     },
-//   });
-
-//   if (
-//     typeof fetchResponse[0] !== 'undefined' &&
-//     typeof fetchResponse[0].globalMicroAppData !== 'undefined'
-//   ) {
-//     delete fetchResponse[0].globalMicroAppData;
-//   }
-//   return fetchResponse[0];
-// };
+const getCurrentUserData = (AWS: any, options: Options, userId: string) =>
+  fetchData(AWS, options, 'User', 'userId', userId);
 
 /**
  * Get the current account data from the database for the given accountId
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {string} accountId is the accountId for which the data needs to be fetched
  */
-// const getCurrentAccountData = async (AWS: any, options: Options, accountId: string) => {
-//   if (accountId === '' || typeof accountId === 'undefined') {
-//     return undefined;
-//   }
-//   const fetchResponse = await fetchRecordsByQuery(AWS, options,{
-//     TableName: 'Account',
-//     ExpressionAttributeNames: { '#pk': 'accountId' },
-//     KeyConditionExpression: '#pk = :accId',
-//     ExpressionAttributeValues: {
-//       ':accId': { S: accountId },
-//     },
-//   });
+const getCurrentAccountData = async (
+  AWS: any,
+  options: Options,
+  accountId: string,
+) => {
+  if (accountId === '' || typeof accountId === 'undefined') {
+    return undefined;
+  }
+  return fetchData(AWS, options, 'Account', 'accountId', accountId);
+};
 
-//   if (fetchResponse.length === 0) {
-//     return undefined;
-//   }
-
-//   if (
-//     typeof fetchResponse[0] !== 'undefined' &&
-//     typeof fetchResponse[0].globalMicroAppData !== 'undefined'
-//   ) {
-//     delete fetchResponse[0].globalMicroAppData;
-//   }
-//   return fetchResponse[0];
-// };
-
-const getInternalAccountMads = async (AWS: any, options: Options, accountId: string) => {
+const getInternalAccountMads = async (
+  AWS: any,
+  options: Options,
+  accountId: string,
+) => {
   if (accountId === '' || typeof accountId === 'undefined') {
     return undefined;
   }
@@ -93,7 +90,11 @@ const getInternalAccountMads = async (AWS: any, options: Options, accountId: str
     : { accountId };
 };
 
-const getInternalUserMads = async (AWS: any, options: Options, userId: string) => {
+const getInternalUserMads = async (
+  AWS: any,
+  options: Options,
+  userId: string,
+) => {
   if (userId === '' || typeof userId === 'undefined') {
     return undefined;
   }
@@ -115,16 +116,16 @@ const defaults = {
 };
 
 const createWithMads = (
-  opts: Options
+  opts: Options,
 ): middy.MiddlewareObj<SkynetMessage[], HandledSkynetMessage[]> => {
   const options = { ...defaults, ...opts };
   const middlewareName = 'withMads';
   const internalMadsCache = {} as any;
   // const { service } = options;
-  
+
   const before: middy.MiddlewareFn<
-  SkynetMessage[],
-  HandledSkynetMessage[]
+    SkynetMessage[],
+    HandledSkynetMessage[]
   > = async (request): Promise<void> => {
     console.log('Running withMads middleware - BEFORE');
     if (options.debugMode) {
@@ -137,13 +138,13 @@ const createWithMads = (
         const userId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'userId'],
-          undefined
+          undefined,
         );
 
         const accountId: any | undefined = _get(
           m,
           ['msgBody', 'context', 'user', 'accountId'],
-          undefined
+          undefined,
         );
 
         const [internalAccountMads, internalUserMads] = await Promise.all([
@@ -158,10 +159,10 @@ const createWithMads = (
                 [userId]: internalUserMads,
               }
             : typeof userId !== 'undefined'
-            ? {
-                [userId]: { userId },
-              }
-            : { ['undefined-userId']: {} }
+              ? {
+                  [userId]: { userId },
+                }
+              : { ['undefined-userId']: {} },
         );
         Object.assign(
           internalMadsCache,
@@ -170,10 +171,10 @@ const createWithMads = (
                 [accountId]: internalAccountMads,
               }
             : typeof accountId !== 'undefined'
-            ? {
-                [accountId]: { accountId },
-              }
-            : { ['undefined-accountId']: {} }
+              ? {
+                  [accountId]: { accountId },
+                }
+              : { ['undefined-accountId']: {} },
         );
 
         // * Evaluate data of user from user-mads and
@@ -211,7 +212,7 @@ const createWithMads = (
           : {};
 
         internalMicroAppData.account = !_isundefined(
-          serviceAccountMads[service]
+          serviceAccountMads[service],
         )
           ? serviceAccountMads[service]
           : {};
@@ -229,8 +230,8 @@ const createWithMads = (
                     [key]: internalAccountMads[key],
                   };
                 }, {}),
-              service
-            )
+              service,
+            ),
           );
         }
         if (typeof internalUserMads !== 'undefined') {
@@ -244,8 +245,8 @@ const createWithMads = (
                     [key]: internalUserMads[key],
                   };
                 }, {}),
-              service
-            )
+              service,
+            ),
           );
         }
 
@@ -253,189 +254,207 @@ const createWithMads = (
           internalMicroAppData,
           sharedMicroAppData,
         });
-      })
+      }),
     );
   };
 
-  // const processWorkerResponseMads = async (
-  //   m: HandledSkynetMessage,
-  //   request: middy.Request
-  // ) => {
-  //   const { msgBody, workerResp } = m;
-  //   const userId: any | undefined = _get(
-  //     msgBody,
-  //     ['context', 'user', 'userId'],
-  //     undefined
-  //   );
+  const processWorkerResponseMads = async (
+    m: HandledSkynetMessage,
+    request: middy.Request,
+  ) => {
+    const { msgBody, workerResp } = m;
+    const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
+    const userId: any | undefined = _get(
+      msgBody,
+      ['context', 'user', 'userId'],
+      undefined,
+    );
 
-  //   const accountId: any | undefined = _get(
-  //     msgBody,
-  //     ['context', 'user', 'accountId'],
-  //     undefined
-  //   );
+    const accountId: any | undefined = _get(
+      msgBody,
+      ['context', 'user', 'accountId'],
+      undefined,
+    );
 
-  //   let userData: any | undefined = undefined;
-  //   let accountData: any | undefined = undefined;
+    let userData: any | undefined = undefined;
+    let accountData: any | undefined = undefined;
 
-  //   if (typeof userId !== 'undefined') {
-  //     userData = await getCurrentUserData(AWS, userId);
-  //   }
+    if (typeof userId !== 'undefined') {
+      userData = await getCurrentUserData(middeyInternal.AWS, options, userId);
+    }
 
-  //   if (typeof accountId !== 'undefined') {
-  //     accountData = await getCurrentAccountData(AWS, accountId);
-  //   }
+    if (typeof accountId !== 'undefined') {
+      accountData = await getCurrentAccountData(
+        middeyInternal.AWS,
+        options,
+        accountId,
+      );
+    }
 
-  //   const context: any = {};
+    const context: any = {};
 
-  //   if (typeof userData !== 'undefined') {
-  //     context[`user-${userId}`] = await getMiddyInternal(request, [
-  //       `user-${userId}`,
-  //     ]);
-  //   }
+    if (typeof userData !== 'undefined') {
+      context[`user-${userId}`] = await getMiddyInternal(request, [
+        `user-${userId}`,
+      ]);
+    }
 
-  //   if (typeof accountData !== 'undefined') {
-  //     context[`account-${accountId}`] = await getMiddyInternal(request, [
-  //       `account-${accountId}`,
-  //     ]);
-  //   }
+    if (typeof accountData !== 'undefined') {
+      context[`account-${accountId}`] = await getMiddyInternal(request, [
+        `account-${accountId}`,
+      ]);
+    }
 
-  //   // * Set defaults if any internal or global MADS do not exist
-  //   const internalAccountMads = _get(internalMadsCache, accountId, {});
-  //   const internalUserMads = _get(internalMadsCache, userId, {});
+    // * Set defaults if any internal or global MADS do not exist
+    const internalAccountMads = _get(internalMadsCache, accountId, {});
+    const internalUserMads = _get(internalMadsCache, userId, {});
 
-  //   const account = _get(context, `account-${accountId}`, {});
-  //   const user = _get(context, `user-${userId}`, {});
+    const account = _get(context, `account-${accountId}`, {});
+    const user = _get(context, `user-${userId}`, {});
 
-  //   if (!account.hasOwnProperty('globalMicroAppData')) {
-  //     Object.assign(account, { globalMicroAppData: { [service]: [] } });
-  //   }
-  //   if (!user.hasOwnProperty('globalMicroAppData')) {
-  //     Object.assign(user, { globalMicroAppData: { [service]: [] } });
-  //   }
-  //   if (!account.globalMicroAppData.hasOwnProperty(service)) {
-  //     Object.assign(account.globalMicroAppData, { [service]: [] });
-  //   }
-  //   if (!user.globalMicroAppData.hasOwnProperty(service)) {
-  //     Object.assign(user.globalMicroAppData, { [service]: [] });
-  //   }
+    if (!account.hasOwnProperty('globalMicroAppData')) {
+      Object.assign(account, { globalMicroAppData: { [options.service]: [] } });
+    }
+    if (!user.hasOwnProperty('globalMicroAppData')) {
+      Object.assign(user, { globalMicroAppData: { [options.service]: [] } });
+    }
+    if (!account.globalMicroAppData.hasOwnProperty(options.service)) {
+      Object.assign(account.globalMicroAppData, { [options.service]: [] });
+    }
+    if (!user.globalMicroAppData.hasOwnProperty(options.service)) {
+      Object.assign(user.globalMicroAppData, { [options.service]: [] });
+    }
 
-  //   if (!internalUserMads.hasOwnProperty(service)) {
-  //     internalUserMads[service] = [];
-  //   }
-  //   if (!internalAccountMads.hasOwnProperty(service)) {
-  //     internalAccountMads[service] = [];
-  //   }
+    if (!internalUserMads.hasOwnProperty(options.service)) {
+      internalUserMads[options.service] = [];
+    }
+    if (!internalAccountMads.hasOwnProperty(options.service)) {
+      internalAccountMads[options.service] = [];
+    }
 
-  //   // * user MADS from the process worker response, then overwrite any changes
-  //   if (
-  //     workerResp.hasOwnProperty('microAppData') &&
-  //     workerResp.microAppData.hasOwnProperty('user')
-  //   ) {
-  //     if (typeof userId === 'undefined') {
-  //       throw new Error(
-  //         'Cannot save user microAppData for undefined userId from request'
-  //       );
-  //     }
-  //     const { user: userMads } = workerResp.microAppData;
+    // * user MADS from the process worker response, then overwrite any changes
+    if (
+      workerResp.hasOwnProperty('microAppData') &&
+      workerResp.microAppData.hasOwnProperty('user')
+    ) {
+      if (typeof userId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined userId from request',
+        );
+      }
+      let { user: userMads } = workerResp.microAppData;
 
-  //     // * Validation
-  //     if (!Array.isArray(userMads)) {
-  //       throw new Error(
-  //         'Worker response in user microAppData must be of type Array.'
-  //       );
-  //     }
+      // * Validation
+      if (!Array.isArray(userMads)) {
+        throw new Error(
+          'Worker response in user microAppData must be of type Array.',
+        );
+      }
 
-  //     userMads.forEach((item) => {
-  //       if (
-  //         !itemExists(item, 'key') ||
-  //         !itemExists(item, 'value') ||
-  //         !itemExists(item, 'readAccess')
-  //       ) {
-  //         throw new Error(
-  //           'Missing a required key (key, value, or readAccess) in a user microAppData item.'
-  //         );
-  //       }
-  //     });
+      userMads.forEach((item) => {
+        if (
+          !itemExists(item, 'key') ||
+          !itemExists(item, 'value') ||
+          !itemExists(item, 'readAccess')
+        ) {
+          throw new Error(
+            'Missing a required key (key, value, or readAccess) in a user microAppData item.',
+          );
+        }
+      });
 
-  //     const duplicateKey = findDuplicateMadsKeys(userMads);
+      // Remove objects with undefined value
+      userMads = userMads.filter((um) => typeof um.value !== 'undefined');
 
-  //     if (duplicateKey) {
-  //       throw new Error(
-  //         `Key: ${duplicateKey} in user microAppData array is not unique. All keys in the microAppData arrays must be unique.`
-  //       );
-  //     }
+      const duplicateKey = findDuplicateMadsKeys(userMads);
 
-  //     // * Overwrite current MADS with the process worker response MADS
-  //     internalUserMads[service] = userMads;
+      if (duplicateKey) {
+        throw new Error(
+          `Key: ${duplicateKey} in user microAppData array is not unique. All keys in the microAppData arrays must be unique.`,
+        );
+      }
 
-  //     await batchPutIntoDynamoDb(AWS, [internalUserMads], 'user-mads');
-  //   }
+      // * Overwrite current MADS with the process worker response MADS
+      internalUserMads[options.service] = userMads;
 
-  //   // * account MADS from the process worker response, then overwrite any changes
-  //   if (
-  //     itemExists(workerResp, 'microAppData') &&
-  //     itemExists(workerResp.microAppData, 'account')
-  //   ) {
-  //     if (typeof accountId === 'undefined') {
-  //       throw new Error(
-  //         'Cannot save user microAppData for undefined accountId from request'
-  //       );
-  //     }
+      await batchPutIntoDynamoDb(
+        middeyInternal.AWS,
+        options,
+        [internalUserMads],
+        'user-mads',
+      );
+    }
 
-  //     const { account: accountMads } = workerResp.microAppData;
+    // * account MADS from the process worker response, then overwrite any changes
+    if (
+      itemExists(workerResp, 'microAppData') &&
+      itemExists(workerResp.microAppData, 'account')
+    ) {
+      if (typeof accountId === 'undefined') {
+        throw new Error(
+          'Cannot save user microAppData for undefined accountId from request',
+        );
+      }
 
-  //     // * Validation
-  //     if (!Array.isArray(accountMads)) {
-  //       throw new Error(
-  //         'Worker response in account microAppData must be of type Array.'
-  //       );
-  //     }
+      const { account: accountMads } = workerResp.microAppData;
 
-  //     accountMads.forEach((item) => {
-  //       if (
-  //         !itemExists(item, 'key') ||
-  //         !itemExists(item, 'value') ||
-  //         !itemExists(item, 'readAccess')
-  //       ) {
-  //         throw new Error(
-  //           'Missing a required key (key, value, or readAccess) in a account microAppData item.'
-  //         );
-  //       }
-  //     });
+      // * Validation
+      if (!Array.isArray(accountMads)) {
+        throw new Error(
+          'Worker response in account microAppData must be of type Array.',
+        );
+      }
 
-  //     const duplicateKey = findDuplicateMadsKeys(accountMads);
+      accountMads.forEach((item) => {
+        if (
+          !itemExists(item, 'key') ||
+          !itemExists(item, 'value') ||
+          !itemExists(item, 'readAccess')
+        ) {
+          throw new Error(
+            'Missing a required key (key, value, or readAccess) in a account microAppData item.',
+          );
+        }
+      });
 
-  //     if (duplicateKey) {
-  //       throw new Error(
-  //         `Key: ${duplicateKey} in account microAppData array is not unique. All keys in the microAppData arrays must be unique.`
-  //       );
-  //     }
+      const duplicateKey = findDuplicateMadsKeys(accountMads);
 
-  //     // * Overwrite current MADS with the process worker response MADS
-  //     internalAccountMads[service] = accountMads;
+      if (duplicateKey) {
+        throw new Error(
+          `Key: ${duplicateKey} in account microAppData array is not unique. All keys in the microAppData arrays must be unique.`,
+        );
+      }
 
-  //     await batchPutIntoDynamoDb(AWS, [internalAccountMads], 'account-mads');
-  //   }
-  // };
+      // * Overwrite current MADS with the process worker response MADS
+      internalAccountMads[options.service] = accountMads;
 
-  // const after: middy.MiddlewareFn<
-  //   SkynetMessage[],
-  //   HandledSkynetMessage[]
-  // > = async (request): Promise<void> => {
-  //   if (options.debugMode) {
-  //     console.log('after', middlewareName);
-  //   }
-  //   // set changes to serviceUserData/serviceAccountData
-  //   if (request.response) {
-  //     await Promise.all(
-  //       request.response.map((m) => processWorkerResponseMads(m, request))
-  //     );
-  //   }
-  // };
+      await batchPutIntoDynamoDb(
+        middeyInternal.AWS,
+        options,
+        [internalAccountMads],
+        'account-mads',
+      );
+    }
+  };
+
+  const after: middy.MiddlewareFn<
+    SkynetMessage[],
+    HandledSkynetMessage[]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('after', middlewareName);
+    }
+    // set changes to serviceUserData/serviceAccountData
+    if (request.response) {
+      await Promise.all(
+        request.response.map((m) => processWorkerResponseMads(m, request)),
+      );
+    }
+  };
 
   return {
     before,
-    // after,
+    after,
   };
 };
 

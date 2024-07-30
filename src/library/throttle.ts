@@ -1,8 +1,6 @@
 import { fetchRecordsByQuery, incrementColumn } from './dynamo';
 import { sleep } from './util';
-import {
-  Options,
-} from '../library/sharedTypes';
+import { Options } from '../library/sharedTypes';
 
 /**
  * Fetches and returns the number of calls made to the service for the given
@@ -42,9 +40,7 @@ export const getCallsMade = async (AWS: any, options: any) => {
   ];
 
   const proms = timeUnitsAndValues.map((timeUnitAndValue) => {
-    fetchRecordsByQuery(AWS, 
-      options,
-      {
+    fetchRecordsByQuery(AWS, options, {
       ...queryObj,
       ExpressionAttributeValues: {
         ':sd': { S: `${options.serviceName}-${timeUnitAndValue.unit}` },
@@ -56,9 +52,12 @@ export const getCallsMade = async (AWS: any, options: any) => {
   const promRes: any = await Promise.all(proms);
 
   return timeUnitsAndValues.reduce((acc: any, timeUnitAndValue, index) => {
-      acc[timeUnitAndValue.unit] = (promRes[index] && typeof promRes[index].callCount !=='undefined') ? promRes[index].callCount : 0;
-      return acc;
-    }, {});
+    acc[timeUnitAndValue.unit] =
+      promRes[index] && typeof promRes[index].callCount !== 'undefined'
+        ? promRes[index].callCount
+        : 0;
+    return acc;
+  }, {});
 };
 
 type arg = {
@@ -81,11 +80,16 @@ export const getAvailableCallsThisSec = async (
   AWS: any,
   options: Options,
 ): Promise<number> => {
-  const { throttleOptions, service: serviceName, bulk, iter = 0 }: any = options;
   const {
-    throttleLmts, 
-    safeThrottleLimit, 
-    reserveCapForDirect, 
+    throttleOptions,
+    service: serviceName,
+    bulk,
+    iter = 0,
+  }: any = options;
+  const {
+    throttleLmts,
+    safeThrottleLimit,
+    reserveCapForDirect,
     retryCntForCapacity,
   }: arg = throttleOptions;
   if (iter > retryCntForCapacity) {
@@ -98,7 +102,7 @@ export const getAvailableCallsThisSec = async (
   const throtLmts = JSON.parse(throttleLmts);
 
   const noLimits = ['day', 'hour', 'minute', 'second'].every(
-    unit => throtLmts[unit] === undefined
+    (unit) => throtLmts[unit] === undefined,
   );
 
   if (noLimits) {
@@ -124,13 +128,10 @@ export const getAvailableCallsThisSec = async (
 
   return availLmt > 0
     ? availLmt
-    : getAvailableCallsThisSec(
-        AWS,
-        {
-          ...options,
-          iter: iter + 1,
-        },
-      );
+    : getAvailableCallsThisSec(AWS, {
+        ...options,
+        iter: iter + 1,
+      });
 };
 
 /**
@@ -145,7 +146,7 @@ export const incrementUsedCount = async (
   AWS: any,
   options: any,
   // serviceName: string,
-  incVal = 1
+  incVal = 1,
 ) => {
   const currMs = Date.now();
   const currSec = Math.floor(currMs / 1000) + 1;
@@ -165,11 +166,11 @@ export const incrementUsedCount = async (
       options,
       'apiCallCount',
       {
-        serviceAndDuration: `${options.serviceName}-${d.unit}`,
+        serviceAndDuration: `${options.service}-${d.unit}`,
         expiryTime: d.expiry,
       },
       'callCount',
-      incVal
+      incVal,
     );
   });
 

@@ -1,12 +1,12 @@
 import middy from '@middy/core';
 import { AWS as awsImports } from '../src/library/awsImports';
 import withAwsImports from '../src/middleware/withAwsImports';
-import withInputValidation from '../src/middleware/withInputValidation';
+import withInputValidation from '../src/middleware/withMessageProcessing';
 import withTokenValidationAndContextPrep from '../src/middleware/withTokenValidationAndContextPrep';
 import withVendorConfig from '../src/middleware/withVendorConfig';
 import withServiceData from '../src/middleware/withServiceData';
 import withMads from '../src/middleware/withMads';
-import { getMiddyInternal } from '../src/library/util';
+// import { getMiddyInternal } from '../src/library/util';
 // import { AWS } from '../src/library/awsImports';
 import { Options } from '../src/library/sharedTypes';
 // import { fetchRecordsByQuery } from '../src/library/dynamo';
@@ -14,7 +14,13 @@ import fs from 'fs/promises';
 import * as path from 'path';
 // import * as ts from 'typescript';
 
-const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep, withVendorConfig, withServiceData, withMads] as any[];
+const middlewareToTest = [
+  withInputValidation,
+  withTokenValidationAndContextPrep,
+  withVendorConfig,
+  withServiceData,
+  withMads,
+] as any[];
 
 // const coreSettings = {
 //   region: 'us-east-1',
@@ -28,7 +34,7 @@ const middlewareToTest = [withInputValidation, withTokenValidationAndContextPrep
 
 const sharedSkynetConfig: Options = {
   region: 'us-east-1',
-  service: 'user-acg',
+  service: 'website-weebly',
   account: '765342366425',
   debugMode: true,
   isBulk: false,
@@ -90,7 +96,8 @@ const sampleSQSEvent = {
         Message: {
           payload: {},
           context: {
-            token: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJsb2dpbnNDb3VudCI6MSwidXNlcnNJblNjb3BlIjpbIjY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdLCJyb2xlcyI6WyJ1c2VyIl0sImdyb3VwcyI6WyJTb3VyY2U6Y29tcGFueSJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcxOTg1NTY0OCwiZXhwIjoxNzE5OTQyMDQ4LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.D63bbP3Ull4ZZchjeN75JyaCgHPeqcHKod-mIIBD2BEIv4SGeakiraNhYlpA1nYWKsGtlWP4nDhRctDTxi9Jkkk1S3yq90cgV4C5frGppgM6ZQZzGukRizW-Yb1B-jydGly8L0p0ejXtoNJnrILigxo1eUke7JLKs1ZF6ZAPitjuWkc0fQc0Qd94LKvt02IoRwI-XV50vo76maPWcqiFuPH90ajGFsF2nAUq9prOQN685v5MNayiI6GkH38R_97vmtOLjb0Mz3wfGzoi6gue9JsThPcjnORDMIWUE_m1vEL2Jemo6GDaPP_apJWh2a6V1Te34QDGdsmMGmhL8aQJwQ',
+            token:
+              'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6Niwicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTk4MzY4MSwiZXhwIjoxNzIyMDcwMDgxLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.byGXBca0QZ-8TVAU-_AZhOiFklSYNRbFmglxJLy3eHCDQXPvsxQizuXzRSHdCiGqFkVr6Atssq9AlJEtMn8ENeQ9JrLqnnXIjGIZQBbh-ypMef1sbLqHWI8SSkYQTsO6Wdeezgnk3kIIj-3w5Q5HTm8ifRnsnYduOsSjqaN7AgixfFdEcL_ICGc3oxPe2u1oEdmD4NYjbHyq7-L5C0gTDr0qj6Rzjz_4xYpRZlthAGmQ-5rPMYSKtCk2ltS_lHvSIJ5gyUKLT5aH75WZfJvN7_cLyjV9EFPj1ff3po-i0UKab6Vk7ioYwQNNKWqweo_vcooMqq9Z6QFZ9eD5U74MIA',
             user: {
               userId,
               accountId,
@@ -112,14 +119,47 @@ const sampleSQSEvent = {
 const test = async (event: any) => {
   const handler = (data: any) => {
     // console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
-    return data.map((m: any) => ({ ...m, workerResp: { res: 'hello world' } }));
+    const resp = {
+      res: 'Hello World',
+      serviceUserData: {
+        data: 'Change',
+      },
+      serviceAccountData: {
+        accountData: 'hello again',
+        plus: '',
+      },
+      microAppData: {
+        user: [
+          {
+            key: 'testUserId',
+            value: 'asdf123',
+            readAccess: ['*'],
+          },
+          {
+            key: 'userNumber',
+            value: undefined,
+            readAccess: ['*'],
+          },
+        ],
+        account: [
+          {
+            key: 'testAccountId',
+            value: 'lkjhj123fpam',
+            readAccess: ['*'],
+          },
+        ],
+      },
+    };
+    return data.map((m: any) => ({ ...m, workerResp: resp }));
   };
 
   const getWorkerFilePath = () => {
     // const baseDir = process.env.NODE_ENV === 'development' ? __dirname : path.join(__dirname, '../src');
-    return path.resolve(path.join(__dirname, '../../tests', 'workers', 'fetchWorker.ts'));
+    return path.resolve(
+      path.join(__dirname, '../../tests', 'workers', 'fetchWorker.ts'),
+    );
   };
-  const workerFilePath = getWorkerFilePath();;
+  const workerFilePath = getWorkerFilePath();
   // const workerFilePath = `./workers/fetchWorker.ts`;
   const middifiedHandler = middy(handler);
   const workerFileData = await fs.readFile(workerFilePath, 'utf8');
@@ -131,12 +171,14 @@ const test = async (event: any) => {
   middifiedHandler.use(middlewareToTest[4](sharedSkynetConfig));
   middifiedHandler.use({
     before: async (request) => {
-      console.log('RUNNING AFTER SUCCESSFUL CONTEXT PREP', JSON.stringify(request, null, 4));
-        const vendorConfig = await getMiddyInternal(request, [
-            'vendorConfig',
-          ]);
-          console.log('VendorConfig should be printed here');
-          console.log('VENDORCONFIG - ', JSON.stringify(vendorConfig, null, 4));
+      console.log(
+        'RUNNING AFTER SUCCESSFUL CONTEXT PREP',
+        JSON.stringify(request, null, 4),
+      );
+      console.log(
+        'This should have service config data and mads - ',
+        JSON.stringify(request.internal, null, 4),
+      );
     },
   });
 

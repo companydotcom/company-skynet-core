@@ -73,7 +73,7 @@ export type ThrottleSettings = {
 export type Options = {
   isBulk?: boolean;
   eventType?: 'transition' | 'fetch';
-  service?: string;
+  service: string;
   region?: string;
   account?: string;
   AWS?: any;

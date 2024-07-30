@@ -1,27 +1,27 @@
-import middy from "@middy/core";
-import { AWS as awsImports } from "../src/library/awsImports";
-import withAwsImports from "../src/middleware/withAwsImports";
+import middy from '@middy/core';
+import { AWS as awsImports } from '../src/library/awsImports';
+import withAwsImports from '../src/middleware/withAwsImports';
 // import withInputValidation from "../src/middleware/withInputValidation";
 // import withTokenValidationAndContextPrep from "../src/middleware/withTokenValidationAndContextPrep";
 // import withVendorConfig from "../src/middleware/withVendorConfig";
 // import withServiceData from "../src/middleware/withServiceData";
 // import withMads from "../src/middleware/withMads";
 // import withPrivacyScreen from "../src/middleware/withPrivacyScreen";
-import withThrottling from "../src/middleware/withThrottling";
-import { getMiddyInternal } from "../src/library/util";
+import withThrottling from '../src/middleware/withThrottling';
+import { getMiddyInternal } from '../src/library/util';
 // import { AWS } from '../src/library/awsImports';
-import { Options } from "../src/library/sharedTypes";
+import { Options } from '../src/library/sharedTypes';
 // import { fetchRecordsByQuery } from '../src/library/dynamo';
-import fs from "fs/promises";
-import * as path from "path";
+import fs from 'fs/promises';
+import * as path from 'path';
 // import * as ts from 'typescript';
 
 const coreSettings = {
   region: 'us-east-1',
-  service: 'techsupport_asi',
+  service: 'techsupport-asi',
   account: '765342366425',
   useThrottling: true,
-  maxMessagesPerInstance: 20,
+  maxMessagesPerInstance: 10,
   isBulk: true,
   eventType: 'fetch',
   throttleOptions: {
@@ -46,99 +46,97 @@ const coreSettings = {
 
 // Prepare the event for testing
 
-const userId = "6682e9de46e04b26a2171628";
-const accountId = "760800e5-af23-453d-9d5b-0634494eb3e4";
+const userId = '6682e9de46e04b26a2171628';
+const accountId = '760800e5-af23-453d-9d5b-0634494eb3e4';
 
-const sampleSQSEvent = {
-  Records: [
-    {
-      EventSource: "aws:sns",
-      EventVersion: "1.0",
-      EventSubscriptionArn:
-        "arn:aws:sns:us-east-1:811255529278:event-bus:a7f1d3a5-8109-4972-a4d3-5e69f7caee1a",
-      body: {
-        Type: "Notification",
-        MessageId: "07a72944-bda4-5820-9752-7c9a92ad84af",
-        TopicArn: "arn:aws:sns:us-east-1:811255529278:event-bus",
-        Subject: null,
-        MessageAttributes: {
-          emitter: {
-            Type: "String",
-            Value: "platform-events",
-          },
-          eventId: {
-            Type: "String",
-            Value: "aeab0921-0bdc-4e47-8968-c2b8c2b1a8f2",
-          },
-          triggerEventId: {
-            Type: "String",
-            Value: "747099bd-48be-42ce-81e1-de80a7212713",
-          },
-          entity: {
-            Type: "String",
-            Value: "tile",
-          },
-          entityId: {
-            Type: "String",
-            Value: "abc123",
-          },
-          operation: {
-            Type: "String",
-            Value: "C",
-          },
-          status: {
-            Type: "String",
-            Value: "trigger",
-          },
-          eventType: {
-            Type: "String",
-            Value: "fetch",
+const sampleSQSEvent = [
+  {
+    EventSource: 'aws:sns',
+    EventVersion: '1.0',
+    EventSubscriptionArn:
+      'arn:aws:sns:us-east-1:811255529278:event-bus:a7f1d3a5-8109-4972-a4d3-5e69f7caee1a',
+    body: {
+      Type: 'Notification',
+      MessageId: '07a72944-bda4-5820-9752-7c9a92ad84af',
+      TopicArn: 'arn:aws:sns:us-east-1:811255529278:event-bus',
+      Subject: null,
+      MessageAttributes: {
+        emitter: {
+          Type: 'String',
+          Value: 'platform-events',
+        },
+        eventId: {
+          Type: 'String',
+          Value: 'aeab0921-0bdc-4e47-8968-c2b8c2b1a8f2',
+        },
+        triggerEventId: {
+          Type: 'String',
+          Value: '747099bd-48be-42ce-81e1-de80a7212713',
+        },
+        entity: {
+          Type: 'String',
+          Value: 'tile',
+        },
+        entityId: {
+          Type: 'String',
+          Value: 'abc123',
+        },
+        operation: {
+          Type: 'String',
+          Value: 'C',
+        },
+        status: {
+          Type: 'String',
+          Value: 'trigger',
+        },
+        eventType: {
+          Type: 'String',
+          Value: 'fetch',
+        },
+      },
+      Message: {
+        payload: {},
+        internalMicroAppData: {
+          testINternalMicroAppData: {
+            test: 'test',
           },
         },
-        Message: {
-          payload: {},
-          internalMicroAppData: {
-            "testINternalMicroAppData": {
-              test: "test",
-            },
+        context: {
+          token:
+            'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6Nywicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMjI0NTYxMiwiZXhwIjoxNzIyMzMyMDEyLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.i5lEhc9eonhzOXVmfnzayJcwmsQDgC5edj29p0Rs-INrPmt9bAN_ym2_LUSPnVnBrPPW8g-0hOsEH_ccvz-CeloXGaQOMpO6LBLjKCJ1mYiv9r14atCUsGvZlJBt6V9RKbc_g39juANux5Rnsk_eC4F4HVdcytUFiRCGxuIx1qtmmVPPLi_xdK5itGwerju_3MHLMbN_f86_1MdIbgjNi6JQNiGGKiI_4NpiJowF-tIVNiu1aERjex6qCE7adZ5H8fSH4wseIE_MbmmL0t2HcUC9WkBMQAf9cNHs9gSyy0NNNQLmbI9HJkIwq25y4ucOngaOZs5Yg_iYZumdGhMStA',
+          user: {
+            userId,
+            accountId,
           },
-          context: {
-            token:
-              "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6Miwicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTA1NTk1NywiZXhwIjoxNzIxMTQyMzU3LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.J1UVK1EvhkPGCiSTctXCXFxzQ9FYUCo4W70fdkjgujlSknup-ayCoMt6DE6fGGUUa958hxsyQJXLbg6ypR2o5w3rWNwKLjI84Z8hVQc2zsFlmpqCMP3BooHr_EUZdYau9_l_cFf1RFU72srTwEHMKfBuW5OYG14aA4Jytqyq42blgX2d68Lr1cDggql7cjsbBXptM8h64lhRSnfTh8Guq8Czp9QK2LpSqJiHkwjE9yi-E51Gn8XAHqECXVgJZPcdK9PuZ0l5tALVPHU7SevOEpneH19U4DH8cULCvDgaznkNXuF8f0XHyvtPoN_rlhlWJwyr0f-GENzABQijMVKYtQ",
-            user: {
-              userId,
-              accountId,
-            },
-            account: {},
-            product: {},
-            tile: {},
-          },
-          metadata: {
-            eventType: "/* EVENT NAME */",
-            tileId: "tile123",
-          },
+          account: {},
+          product: {},
+          tile: {},
+        },
+        metadata: {
+          eventType: '/* EVENT NAME */',
+          tileId: 'tile123',
         },
       },
     },
-  ],
-};
+  },
+];
 
 const test = async (event: any) => {
   const handler = (data: any) => {
     console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
-    return data.map((m: any) => ({ ...m, workerResp: { res: "hello world" } }));
+    return data.map((m: any) => ({ ...m, workerResp: { res: 'hello world' } }));
   };
 
   const getWorkerFilePath = () => {
     // const baseDir = process.env.NODE_ENV === 'development' ? __dirname : path.join(__dirname, '../src');
     return path.resolve(
-      path.join(__dirname, "../../tests", "workers", "fetchWorker.ts")
+      path.join(__dirname, '../../tests', 'workers', 'fetchWorker.ts'),
     );
   };
   const workerFilePath = getWorkerFilePath();
   // const workerFilePath = `./workers/fetchWorker.ts`;
   const middifiedHandler = middy(handler);
-  const workerFileData = await fs.readFile(workerFilePath, "utf8");
+  const workerFileData = await fs.readFile(workerFilePath, 'utf8');
   middifiedHandler.use(withAwsImports(awsImports, workerFileData));
   middifiedHandler.use(withThrottling(coreSettings));
   middifiedHandler.use({
@@ -153,17 +151,17 @@ const test = async (event: any) => {
   });
 
   await middifiedHandler(event, {} as any, () => {
-    console.log("did this work");
+    console.log('did this work');
   });
 };
 
 const run = async () => {
   try {
-    console.log("RUNNING GOOD EVENT");
+    console.log('RUNNING GOOD EVENT');
     await test(sampleSQSEvent);
   } catch (err) {
     console.log(err);
-    console.log("This should not have erred", err);
+    console.log('This should not have erred', err);
   }
 };
 

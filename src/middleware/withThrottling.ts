@@ -11,9 +11,7 @@ import {
   incrementUsedCount,
 } from '../library/throttle';
 
-import {
-  getMiddyInternal,
-} from '../library/util';
+import { getMiddyInternal } from '../library/util';
 
 const defaults = {
   isBulk: false,
@@ -38,7 +36,7 @@ type SettledOptions = {
 };
 
 const createWithThrottling = (
-  opt: Options
+  opt: Options,
 ): middy.MiddlewareObj<RawEvent, [HandledSkynetMessage]> => {
   console.log('Running withThrottling - BEFORE');
   const middlewareName = 'withThottling';
@@ -59,10 +57,7 @@ const createWithThrottling = (
 
     // need to figure out increment
     const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
-    availCap = await getAvailableCapacity(
-      middeyInternal.AWS,
-      options,
-    );
+    availCap = await getAvailableCapacity(middeyInternal.AWS, options);
 
     if (availCap < 1) {
       console.log('No Capacity available for requests');
@@ -72,68 +67,71 @@ const createWithThrottling = (
     request.internal.availCap = options.isBulk ? availCap : 1;
     await incrementUsedCount(
       middeyInternal.AWS,
-      { 
+      {
         ...options,
       },
-      options.isBulk ? availCap : 1
+      options.isBulk ? availCap : 1,
     );
   };
 
   // eventually need to consider how to handled workers that are calling multiple apis which have different api call limits.  ways which we can wrap individual api calls and track in that manner based on doing an estimation based on an entire lambda execution.
 
-  // const throttleAfter: middy.MiddlewareFn<
-  //   RawEvent,
-  //   [HandledSkynetMessage]
-  // > = async (request): Promise<void> => {
-  //   if (options.debugMode) {
-  //     console.log('after', middlewareName);
-  //   }
-  //   // if request contains key to adjust used capacity
-  //   // - adjust call count
-  //   if (availCap) {
-  //     let processedCount = 0;
-  //     if (request.response && request.response.length) {
-  //       processedCount = request.response.length;
-  //     }
-  //     // TODO: consider implications of this "post operation adjustment" on esp. per Second throttling - however since bulk operations only run every 5 minutes it should be acceptable to not do a "pre-operation" update - meaning that this number doesn't need to be negative.  (of course the "perSecond" has never been truly accurate).  This being given that the "reservedCapForDirect" is high enough as well as the "max usage" value (whatever its called)
-  //     console.log(
-  //       'Throttling: Post Worker Execution, reducing API consumption estimation by',
-  //       processedCount - availCap
-  //     );
-  //     await incrementUsedCount(
-  //       options.AWS,
-  //       options.service,
-  //       processedCount - availCap
-  //     );
-  //   }
-  // };
+  const throttleAfter: middy.MiddlewareFn<
+    RawEvent,
+    [HandledSkynetMessage]
+  > = async (request): Promise<void> => {
+    if (options.debugMode) {
+      console.log('after', middlewareName);
+    }
+    // if request contains key to adjust used capacity
+    // - adjust call count
+    if (availCap) {
+      let processedCount = 0;
+      if (request.response && request.response.length) {
+        processedCount = request.response.length;
+      }
+      // TODO: consider implications of this "post operation adjustment" on esp. per Second throttling - however since bulk operations only run every 5 minutes it should be acceptable to not do a "pre-operation" update - meaning that this number doesn't need to be negative.  (of course the "perSecond" has never been truly accurate).  This being given that the "reservedCapForDirect" is high enough as well as the "max usage" value (whatever its called)
+      console.log(
+        'Throttling: Post Worker Execution, reducing API consumption estimation by',
+        processedCount - availCap,
+      );
+      const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
+      await incrementUsedCount(
+        middeyInternal.AWS,
+        {
+          ...options,
+        },
+        processedCount - availCap,
+      );
+    }
+  };
 
-  // const onError: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
-  //   request
-  // ): Promise<void> => {
-  //   // TODO: adjust availCap.  check to see if request.response exists, if not, no throughput was used
-  //   let usedThroughput = 0;
-  //   if (request.response) {
-  //     usedThroughput = request.response.length || 0;
-  //   }
-  //   if (availCap) {
-  //     console.log(
-  //       'Throttling: Error Detected, reducing API consumption estimation by',
-  //       usedThroughput - availCap
-  //     );
-  //     const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
-  //     await incrementUsedCount(
-  //       middeyInternal.AWS,
-  //       options.service,
-  //       usedThroughput - availCap
-  //     );
-  //   }
-  // };
+  const onError: middy.MiddlewareFn<RawEvent, [HandledSkynetMessage]> = async (
+    request,
+  ): Promise<void> => {
+    // TODO: adjust availCap.  check to see if request.response exists, if not, no throughput was used
+    let usedThroughput = 0;
+    if (request.response) {
+      usedThroughput = request.response.length || 0;
+    }
+    if (availCap) {
+      console.log(
+        'Throttling: Error Detected, reducing API consumption estimation by',
+        usedThroughput - availCap,
+      );
+      const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
+      await incrementUsedCount(
+        middeyInternal.AWS,
+        options,
+        usedThroughput - availCap,
+      );
+    }
+  };
 
   return {
     before: throttleBefore,
-    // after: throttleAfter,
-    // onError,
+    after: throttleAfter,
+    onError,
   };
 };
 

@@ -1,7 +1,7 @@
 import middy from "@middy/core";
 import { AWS as awsImports } from "../src/library/awsImports";
 import withAwsImports from "../src/middleware/withAwsImports";
-import withInputValidation from "../src/middleware/withInputValidation";
+import withInputValidation from "../src/middleware/withMessageProcessing";
 import withTokenValidationAndContextPrep from "../src/middleware/withTokenValidationAndContextPrep";
 import withVendorConfig from "../src/middleware/withVendorConfig";
 import withServiceData from "../src/middleware/withServiceData";
@@ -104,7 +104,7 @@ const sampleSQSEvent = {
           },
           context: {
             token:
-              "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6Miwicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTA1NTk1NywiZXhwIjoxNzIxMTQyMzU3LCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.J1UVK1EvhkPGCiSTctXCXFxzQ9FYUCo4W70fdkjgujlSknup-ayCoMt6DE6fGGUUa958hxsyQJXLbg6ypR2o5w3rWNwKLjI84Z8hVQc2zsFlmpqCMP3BooHr_EUZdYau9_l_cFf1RFU72srTwEHMKfBuW5OYG14aA4Jytqyq42blgX2d68Lr1cDggql7cjsbBXptM8h64lhRSnfTh8Guq8Czp9QK2LpSqJiHkwjE9yi-E51Gn8XAHqECXVgJZPcdK9PuZ0l5tALVPHU7SevOEpneH19U4DH8cULCvDgaznkNXuF8f0XHyvtPoN_rlhlWJwyr0f-GENzABQijMVKYtQ",
+              "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjdkWFVPVnlOWGprczdSLW4wSEVhRiJ9.eyJodHRwczovL2NvbXBhbnkuY29tL3VzZXJfYXV0aG9yaXphdGlvbiI6eyJncm91cHMiOlsiU291cmNlOmNvbXBhbnkiLCJBY2NvdW50Ojc2MDgwMGU1LWFmMjMtNDUzZC05ZDViLTA2MzQ0OTRlYjNlNCJdLCJsb2dpbnNDb3VudCI6NSwicm9sZXMiOlsiYWRtaW4iXSwidXNlcnNJblNjb3BlIjpbImF1dGgwfDY2ODJlOWRlNDZlMDRiMjZhMjE3MTYyOCJdfSwiaXNzIjoiaHR0cHM6Ly9pZC1kZXYuY29tcGFueS1jb3JwLmNvbS8iLCJzdWIiOiJhdXRoMHw2NjgyZTlkZTQ2ZTA0YjI2YTIxNzE2MjgiLCJhdWQiOlsiaHR0cHM6Ly9jb21wYW55LWNvcnAtZGV2eC5hdXRoMC5jb20vYXBpL3YyLyIsImh0dHBzOi8vY29tcGFueS1jb3JwLWRldnguYXV0aDAuY29tL3VzZXJpbmZvIl0sImlhdCI6MTcyMTg5NjMyMSwiZXhwIjoxNzIxOTgyNzIxLCJzY29wZSI6Im9wZW5pZCBwcm9maWxlIGVtYWlsIG9mZmxpbmVfYWNjZXNzIiwiYXpwIjoidDlpVDN3cFNNM2ltVmdpQnZ6N29iMmRIT0hDWGxaR1UifQ.o2ZHfxENpnAXbztKbm_n9pEF_PHLSoJzKrZlaEtlbuyMxiEK3vyEVypLH7Z1rmy29wIDHb_aEPNRl6AN-AElRgasX52qTI65uHm9z-AjJvzMgsStjqteVOF1MzvnGeNU3owR40aAuy7FOdG51DSHNrBBsXvv_xzKE7hMEWQFN2PHy3IKSScwmy1AlUKAckrVc3IrnnKEDBm32ijYsJoykScEBY48GGE4td6xDpk2S9rQwJhTGDBYbl6vexZSjahD6hi0Q0JpAJpOnRDU2zv7rjIa7UxFw6hAPK1rZLYEJYT_kTILotegBThyQZSczD0DKHZek5pJfu_-jl2IBUvPCw",
             user: {
               userId,
               accountId,
@@ -125,7 +125,7 @@ const sampleSQSEvent = {
 
 const test = async (event: any) => {
   const handler = (data: any) => {
-    // console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
+    console.log('INTERIOR DATA', JSON.stringify(data, null, 4));
     return data.map((m: any) => ({ ...m, workerResp: { res: "hello world" } }));
   };
 

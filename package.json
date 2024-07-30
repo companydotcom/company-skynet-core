@@ -7,7 +7,7 @@
     "dist"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest",
     "build": "webpack",
     "lint": "eslint ."
   },
@@ -22,7 +22,9 @@
     "@eslint/js": "^9.7.0",
     "@types/aws-lambda": "^8.10.138",
     "@types/node": "^20.14.2",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/parser": "^7.16.0",
+    "dotenv": "^16.4.5",
     "eslint": "^8.57.0",
     "globals": "^15.8.0",
     "husky": "^9.0.11",
@@ -32,6 +34,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
     "typescript-eslint": "^7.16.0",
+    "vitest": "^2.0.4",
     "webpack": "^5.92.0",
     "webpack-cli": "^5.1.4",
     "webpack-node-externals": "^3.0.0"
