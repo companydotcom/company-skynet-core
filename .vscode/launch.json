@@ -39,7 +39,7 @@
       "type": "node",
       "request": "launch",
       "name": "2 - With Message Processing",
-      "program": "${workspaceFolder}/lib/tests/test-test-withInputValidation.js",
+      "program": "${workspaceFolder}/lib/tests/test-withMessageProcessing.js",
       "envFile": "${workspaceFolder}/.env",
       "preLaunchTask": "tsc: build - tsconfig.json"
     },

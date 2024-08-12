@@ -3,7 +3,10 @@ import { parse } from '@babel/parser';
 // import traverse from '@babel/traverse';
 import { Identifier } from '@babel/types';
 
-const withAwsImports = (awsImports: any, workerFile: string): middy.MiddlewareObj => {
+const withAwsImports = (
+  awsImports: any,
+  workerFile: string,
+): middy.MiddlewareObj => {
   // console.log('workerFile - ', workerFile);
   const middlewareName = 'withAwsImports';
   const before: middy.MiddlewareFn = async (request): Promise<void> => {
@@ -20,7 +23,7 @@ const withAwsImports = (awsImports: any, workerFile: string): middy.MiddlewareOb
       });
       // console.log('ast - ', JSON.stringify(ast.program.body, null, 4));
       const imports: any[] = [];
-      ast.program.body.forEach(node => {
+      ast.program.body.forEach((node) => {
         // console.log('node type - ', node.type);
         if (node.type === 'ImportDeclaration') {
           const importStatement = {
@@ -46,17 +49,16 @@ const withAwsImports = (awsImports: any, workerFile: string): middy.MiddlewareOb
           imports.push(importStatement);
         }
       });
-  
+
       // console.log('Import Statements:', imports);
 
       request.internal.AWS = {
         ...awsImports,
         ...imports,
       };
-
     } catch (err) {
       console.error('Error parsing or traversing AST:', err);
-      throw err; 
+      throw err;
     }
   };
 
