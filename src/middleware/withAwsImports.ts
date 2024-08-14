@@ -22,40 +22,38 @@ const withAwsImports = (
         plugins: ['typescript'],
       });
       // console.log('ast - ', JSON.stringify(ast.program.body, null, 4));
-      const imports: any[] = [];
+      const requiredModules: Record<string, any> = {};
       ast.program.body.forEach((node) => {
         // console.log('node type - ', node.type);
         if (node.type === 'ImportDeclaration') {
-          const importStatement = {
-            source: node.source.value,
-            specifiers: node.specifiers.map((specifier) => {
-              if (specifier.type === 'ImportSpecifier') {
-                const importedName = (specifier.imported as Identifier).name;
-                const localName = (specifier.local as Identifier).name;
-                return {
-                  type: specifier.type,
-                  imported: importedName,
-                  local: localName,
-                };
-              } else {
-                const localName = (specifier.local as Identifier).name;
-                return {
-                  type: specifier.type,
-                  local: localName,
-                };
-              }
-            }),
-          };
-          imports.push(importStatement);
+          const moduleName = node.source.value;
+          console.log('node.source.value; - ', node.source.value);
+          if (moduleName.indexOf('@aws-sdk') === -1) {
+            return;
+          }
+          node.specifiers.forEach((specifier) => {
+            let localName: string;
+            if (specifier.type === 'ImportSpecifier') {
+              localName = (specifier.local as Identifier).name;
+            } else {
+              localName = (specifier.local as Identifier).name;
+            }
+            requiredModules[localName] = require(moduleName);
+          });
         }
       });
 
-      // console.log('Import Statements:', imports);
-
+      // console.log('awsImports:', JSON.stringify(awsImports, null, 4));
+      console.log(
+        'Import Statements:',
+        JSON.stringify(requiredModules, null, 4),
+      );
+      // console.log('request.internal.AWS - ', Object.keys(request.internal.AWS));
       request.internal.AWS = {
         ...awsImports,
-        ...imports,
+        ...requiredModules,
       };
+      request.event.AWS = request.internal.AWS;
     } catch (err) {
       console.error('Error parsing or traversing AST:', err);
       throw err;
