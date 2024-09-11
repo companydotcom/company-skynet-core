@@ -65,7 +65,21 @@ export const sendMsg = async (
   qUrl: string,
   msg: any,
 ) => {
+  console.log(
+    '------------------------------3---------------------------------------',
+  );
+  // console.log('sendMsg - ', AWS.sqsClient);
+  console.log(
+    '------------------------------4---------------------------------------',
+  );
   const sqs = new AWS.sqsClient.SQSClient({ region });
+  console.log(
+    '------------------------------5---------------------------------------',
+  );
+  console.log('queue url - ', qUrl);
+  console.log(
+    '------------------------------10---------------------------------------',
+  );
   const command = new AWS.sqsClient.SendMessageCommand({
     QueueUrl: qUrl,
     MessageBody: msg,

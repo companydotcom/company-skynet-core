@@ -1,31 +1,38 @@
 {
   "compilerOptions": {
-    "lib": ["es2017"],
+    "lib": ["DOM", "es2017"],
     "removeComments": true,
-    "module": "commonjs",
+    // "module": "commonjs",
     "moduleResolution": "node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "sourceMap": true,
     "target": "ES6",
-    "outDir": "lib",
+    // "rootDir": "./",
+    "outDir": "dist",
     "strict": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "declaration": true,
+    "declarationMap": true
   },
   "include": [
-    // "./**/*.ts",
-    "src/index.ts",
-    "src/library/util.ts",
+    "./**/*.ts",
+    "./**/**/*.ts",
+    "./src/index.ts",
+    "./src/library/util.ts",
+    "./src/library/sharedTypes.ts",
     // "src/library/throttle.ts",
     // "src/library/queue.ts",
     // "src/library/eventStream.ts",
-    "src/library/dynamo.ts",
-    "dist/index.js",
+    "./src/library/dynamo.ts",
+    // "dist/index.js",
     // "src/handlers/setupDatabase.ts",
     // "src/handlers/getPostHttp.ts",
-    "tests/*.ts",
-    "tests/**/*.ts"
+    // "tests/*.ts",
+    // "tests/**/*.ts",
+    // "vitests/**/*.ts",
+    // "vitest.config.ts"
   ],
-  "exclude": ["node_modules/**/*", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*", ".husky/**/*", ".yarn/**/*", "Untitled-1"]
+  "exclude": ["vitest.config.js", "node_modules/**/*", "node_modules/@smithy/util-stream/dist-types/stream-type-check.d.ts", ".webpack/**/*", "_warmup/**/*", ".vscode/**/*", ".husky/**/*", "./dist/**/*", "./lib/**/*"]
 }

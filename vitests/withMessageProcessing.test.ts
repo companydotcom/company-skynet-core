@@ -6,18 +6,18 @@ import { AWS as awsImports } from '../src/library/awsImports';
 import fs from 'fs/promises';
 import * as path from 'path';
 import { getMiddyInternal } from '../src/library/util';
-import { fetchRecordsByQuery } from '../src/library/dynamo';
+// import { fetchRecordsByQuery } from '../src/library/dynamo';
 import { Options } from '../src/library/sharedTypes';
 
-const sharedSkynetConfig = {
-  region: 'us-east-1',
-  service: 'testService',
-  account: '765342366425',
-  debugMode: true,
-  isBulk: false,
-  eventType: 'fetch',
-  maxMessagesPerInstance: 20,
-};
+// const sharedSkynetConfig = {
+//   region: 'us-east-1',
+//   service: 'testService',
+//   account: '765342366425',
+//   debugMode: true,
+//   isBulk: false,
+//   eventType: 'fetch',
+//   maxMessagesPerInstance: 20,
+// };
 
 const userId = '6332a2f75bafd02fb95e5c22';
 const accountId = 'bf6318f2-6d0b-4703-9c53-e776f04b3957';
@@ -113,11 +113,12 @@ const sampleSkynetMessages = [
 ];
 
 describe('withAwsImports middleware', () => {
-  let handler;
-  let requestCopy;
+  let handler: any;
+  let requestCopy: any;
 
   beforeEach(async () => {
     const baseHandler = (data: any, context: any) => {
+      console.log('context - ', context.length);
       return data.map((m: any) => ({
         ...m,
         workerResp: { res: 'This is a test response from the worker' },
@@ -133,7 +134,7 @@ describe('withAwsImports middleware', () => {
     handler.use(withAwsImports(awsImports, workerFileData));
     handler.use(withThrottling(coreSettings));
     handler.use({
-      before: async (request) => {
+      before: async (request: any) => {
         requestCopy = { ...request };
         const data = await getMiddyInternal(request, ['availCap']);
         console.log('DATA FOR WORKER', data);

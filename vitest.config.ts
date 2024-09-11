@@ -34,6 +34,5 @@ export default defineConfig({
       'tests/**/*',
       'node_modules',
     ],
-    // Add more configuration options if needed
   },
 });

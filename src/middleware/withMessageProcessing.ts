@@ -117,6 +117,7 @@ const sendToDlq = async (
   options: SettledOptions,
   error: Error | null,
 ) => {
+  console.log('options - ', JSON.stringify(options, null, 4));
   const { region, account, service } = options;
   const { msgBody, msgAttribs } = message;
   await sendSqsMsg(
@@ -218,6 +219,7 @@ const withMessageProcessing = (
     RawEvent,
     [HandledSkynetMessage]
   > = async (request): Promise<void> => {
+    console.log('opt - ', JSON.stringify(options, null, 4));
     console.log('Running withMessageProcessing middleware - BEFORE');
     // console.log('Request.event - ', JSON.stringify(request.event, null, 4));
     if (options.debugMode) {
@@ -238,11 +240,18 @@ const withMessageProcessing = (
     request,
   ): Promise<void> => {
     if (options.debugMode) {
-      console.log('after', middlewareName);
+      console.log('withMessagProcessing - after', request);
     }
+    console.log('sqsAfter options - ', JSON.stringify(options, null, 4));
     const { region, account, service } = options;
     const middeyInternal: any = await getMiddyInternal(request, ['AWS']);
-
+    console.log(
+      '------------------------------6---------------------------------------',
+    );
+    console.log('sqsAfter - ', middeyInternal);
+    console.log(
+      '------------------------------7---------------------------------------',
+    );
     const handledMessages = request.response;
     if (handledMessages) {
       console.log(handledMessages.length, 'message(s) were processed');

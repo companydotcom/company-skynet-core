@@ -53,12 +53,13 @@ const sampleSkynetMessages = [
 ];
 
 describe('withAwsImports middleware', () => {
-  let handler;
-  let capturedEvent;
-  let requestCopy;
+  let handler: any;
+  let capturedEvent: any;
+  let requestCopy: any;
 
   beforeEach(async () => {
     const baseHandler = (data: any, context: any) => {
+      console.log('context - ', context.length);
       return data.map((m: any) => ({
         ...m,
         workerResp: { res: 'This is a test response from the fetch worker' },
@@ -73,7 +74,7 @@ describe('withAwsImports middleware', () => {
     const workerFileData = await fs.readFile(workerFilePath, 'utf8');
     handler.use(withAwsImports(awsImports, workerFileData));
     handler.use({
-      before: async (request) => {
+      before: async (request: any) => {
         requestCopy = { ...request };
         capturedEvent = request.event.AWS;
 

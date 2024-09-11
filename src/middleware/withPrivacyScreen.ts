@@ -59,7 +59,7 @@ const createWithPrivacyScreen = (
     const middeyInternal: any = await getMiddyInternal(request, [
       'vendorConfig',
     ]);
-    // requestInternalStash = { ...request.internal };
+    requestInternalStash = { ...request.internal };
 
     request.event = await Promise.all(
       request.event.map(async (m: SkynetMessage) => {

@@ -1,4 +1,4 @@
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
+// import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 import { parseJson } from './util';
 
 // interface MessageAttributeValue<T = string> {
@@ -134,6 +134,13 @@ export default {
     attributes: CompanyEventAttributesUnParsed = {} as CompanyEventAttributesUnParsed,
     options: object = {},
   ) => {
+    console.log(
+      '------------------------------1---------------------------------------',
+    );
+    // console.log('AWS.snsClient - ', AWS.snsClient);
+    console.log(
+      '------------------------------2---------------------------------------',
+    );
     const sns = new AWS.snsClient.SNSClient({ region: 'us-east-1' });
     try {
       const params = {

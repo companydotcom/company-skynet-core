@@ -29,7 +29,11 @@ const defaults = {
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {string} accountId is the accountId for which the data needs to be fetched
  */
-const getCurrentAccountData = async (AWS: any, accountId: string, options: Options) => {
+const getCurrentAccountData = async (
+  AWS: any,
+  accountId: string,
+  options: Options,
+) => {
   if (accountId === '' || typeof accountId === 'undefined') {
     return undefined;
   }
@@ -45,7 +49,7 @@ const getCurrentAccountData = async (AWS: any, accountId: string, options: Optio
   if (fetchResponse.length === 0) {
     return undefined;
   }
- 
+
   if (fetchResponse.length === 0) {
     return undefined;
   }
@@ -64,7 +68,11 @@ const getCurrentAccountData = async (AWS: any, accountId: string, options: Optio
  * @param {object} AWS is the AWS sdk instance that needs to be passed from the handler
  * @param {string} userId is the userId for which the data needs to be fetched
  */
-const getCurrentUserData = async (AWS: any, userId: string, options: Options) => {
+const getCurrentUserData = async (
+  AWS: any,
+  userId: string,
+  options: Options,
+) => {
   if (userId === '' || typeof userId === 'undefined') {
     return undefined;
   }
@@ -94,7 +102,9 @@ const getCurrentUserData = async (AWS: any, userId: string, options: Options) =>
   return fetchResponse[0];
 };
 
-const validateAndDecodeToken = async (token: string): Promise<DecodedResult> => {
+const validateAndDecodeToken = async (
+  token: string,
+): Promise<DecodedResult> => {
   try {
     // Decode the token
     const decoded: DecodedToken = jwtDecode(token);
@@ -111,19 +121,20 @@ const validateAndDecodeToken = async (token: string): Promise<DecodedResult> => 
   } catch (error) {
     return { error: (error as Error).message };
   }
-} 
-
+};
 
 const withTokenValidationAndContextPrep = (
-  opt: Options
+  opt: Options,
 ): middy.MiddlewareObj<[SkynetMessage], [HandledSkynetMessage]> => {
   const middlewareName = 'withTokenValidationAndContextPrep';
   const options = { ...defaults, ...opt };
   const before: middy.MiddlewareFn<
-  [SkynetMessage],
-  [HandledSkynetMessage]
+    [SkynetMessage],
+    [HandledSkynetMessage]
   > = async (request): Promise<void> => {
-    console.log('Running withTokenValidationAndContextPrep middleware - BEFORE');
+    console.log(
+      'Running withTokenValidationAndContextPrep middleware - BEFORE',
+    );
     if (options.debugMode) {
       console.log('before', middlewareName);
     }
@@ -132,31 +143,37 @@ const withTokenValidationAndContextPrep = (
       // validate token if received in the context
       let tokenData;
       if (typeof m.msgBody.context.token !== 'undefined') {
-        tokenData = await validateAndDecodeToken(m.msgBody.context.token);        
+        tokenData = await validateAndDecodeToken(m.msgBody.context.token);
       }
       const userId = m.msgBody.context.user.userId;
       if (typeof tokenData !== 'undefined' && tokenData.userId !== userId) {
-        throw new Error(
-          'Messages using "withTokenValidationAndContextPrep" has invalid token'
-        );
+        throw new Error('Messages has invalid token');
       }
       if (!userId) {
         throw new Error(
-          'Messages using "withTokenValidationAndContextPrep" must include a userId on the context.user object'
+          'Messages must include a userId on the context.user object',
         );
       }
-      const userData = await getCurrentUserData(middeyInternal.AWS, userId, options);
+      const userData = await getCurrentUserData(
+        middeyInternal.AWS,
+        userId,
+        options,
+      );
       let accountId = undefined;
       if (typeof userData !== 'undefined') {
         request.internal[`user-${userId}`] = userData;
         accountId = request.internal[`user-${userId}`].accountId;
-        const accountData = await getCurrentAccountData(middeyInternal.AWS, accountId, options);
+        const accountData = await getCurrentAccountData(
+          middeyInternal.AWS,
+          accountId,
+          options,
+        );
         if (typeof accountData !== 'undefined') {
           request.internal[`account-${accountId}`] = accountData;
         }
       }
       console.log(
-        `Fetching latest User: ${userId} and Account: ${accountId} for this message`
+        `Fetching latest User: ${userId} and Account: ${accountId} for this message`,
       );
     }
   };

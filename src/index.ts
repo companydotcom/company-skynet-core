@@ -9,8 +9,7 @@ import withServiceData from './middleware/withServiceData';
 import withMads from './middleware/withMads';
 import withPrivacyScreen from './middleware/withPrivacyScreen';
 import withThrottling from './middleware/withThrottling';
-// import withCrmData from './middleware/withCrmData';
-// import { fetchRecordsByQuery } from './library/dynamo';
+import withCrmData from './middleware/withCrmData';
 import {
   CoreSkynetConfig,
   SkynetMessage,
@@ -32,14 +31,14 @@ const createTailoredOptions = (
   );
 };
 
-export const useSkynet = async (
+const useSkynet = async (
   AWS: any,
   skynetConfig: any,
   worker: (params: any) => any,
   workerFile: string,
   additionalMiddleware: [(opt: Options) => middy.MiddlewareObj],
 ) => {
-  console.log('skynetConfig', JSON.stringify(skynetConfig, null, 4));
+  // console.log('skynetConfig - ', JSON.stringify(skynetConfig, null, 4));
 
   // console.log('Preparing Skynet Handler');
   const handler = middy(async (event: any) => {
@@ -48,10 +47,10 @@ export const useSkynet = async (
       // opportunity to adjust call signature of the worker to best suit this approach
       event.map((m: SkynetMessage) =>
         neverThrowError(m, worker).then((result: any) => {
-          console.log(
-            'Received worker response',
-            JSON.stringify(result.workerResp, null, 2),
-          );
+          // console.log(
+          //   'Received worker response',
+          //   JSON.stringify(result.workerResp, null, 2),
+          // );
           return {
             ...result,
             ...result.params,
@@ -193,8 +192,10 @@ export const utils = {
   addToEventContext,
 };
 
-// export const middleware = {
-//   withCrmData,
-// };
+export const middleware = {
+  withCrmData,
+};
+
+export { useSkynet };
 
 export { CoreSkynetConfig };

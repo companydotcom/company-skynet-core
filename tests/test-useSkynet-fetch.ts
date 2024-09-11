@@ -30,7 +30,6 @@
 
 // const test = async (event: any) => {
 
-
 //   const handler = async (data: any) => {
 //     // console.log('INTERIOR DATA', JSON.stringify(dynamoDbClient, null, 4));
 //     const workerFileData = await fs.readFile('./workers/fetchWorker.ts', 'utf8');
@@ -42,7 +41,6 @@
 //   };
 
 //   const middifiedHandler = middy(handler);
-  
 
 //   await middifiedHandler(event, {} as any, {} as any);
 // };

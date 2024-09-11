@@ -3,7 +3,7 @@ import * as DynamoDBUtils from '@aws-sdk/util-dynamodb';
 import * as DynamoDBLib from '@aws-sdk/lib-dynamodb';
 import * as SNSClient from '@aws-sdk/client-sns';
 import * as SSMClient from '@aws-sdk/client-ssm';
-import * as SQSClient from '@aws-sdk/client-sqs';
+// import * as SQSClient from '@aws-sdk/client-sqs';
 import * as S3Client from '@aws-sdk/client-s3';
 
 export const AWS: { [key: string]: any } = {
@@ -12,11 +12,9 @@ export const AWS: { [key: string]: any } = {
   dynamoDbLib: DynamoDBLib,
   snsClient: SNSClient,
   ssmClient: SSMClient,
-  sqsClient: SQSClient,
+  // sqsClient: SQSClient,
   s3Client: S3Client,
 };
-
-
 
 // export const AWS: { [key: string]: any } = {
 //   dynamoDbClient: require('@aws-sdk/client-dynamodb'),
@@ -27,5 +25,5 @@ export const AWS: { [key: string]: any } = {
 //   sqsClient : require('@aws-sdk/client-sqs'),
 //   S3Client: require('@aws-sdk/client-s3'),
 //   // other AWS SDK imports will come here
-  
+
 // };
